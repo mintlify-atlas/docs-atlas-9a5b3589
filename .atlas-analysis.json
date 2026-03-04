@@ -1,0 +1,102 @@
+{
+  "projectType": "saas",
+  "projectName": "Huellitas",
+  "projectDescription": "Android mobile app for registering and tracking street animals to facilitate their rescue and adoption",
+  "theme": "almond",
+  "primaryColor": "#6fc2d2",
+  "lightColor": "#5e7b82",
+  "darkColor": "#b7d4da",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/animal-registration",
+              "features/animal-listing",
+              "features/camera-capture",
+              "features/onboarding"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/mvvm-pattern",
+              "architecture/navigation",
+              "architecture/networking"
+            ]
+          },
+          {
+            "group": "UI Components",
+            "pages": [
+              "components/animal-card",
+              "components/filter-chips",
+              "components/image-zoom",
+              "components/theming"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Backend API",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/configuration"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/endpoints/list-animals",
+              "api/endpoints/create-animal",
+              "api/endpoints/upload-image"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "api/models/animal",
+              "api/models/response"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Animal registration with photo, location, and contact details",
+    "Filterable and sortable animal listing with pagination",
+    "Integrated CameraX photo capture",
+    "Animated splash screen and onboarding flow",
+    "Image zoom dialog for detailed viewing",
+    "Pull-to-refresh and infinite scroll",
+    "Material 3 design with custom theming",
+    "PHP REST API backend with MySQL database"
+  ],
+  "publicApiSurface": [
+    "GET /api/animales/listar.php",
+    "POST /api/animales/crear.php",
+    "POST /api/animales/subir_imagen.php",
+    "GET /api/tipos_animal/listar.php",
+    "GET /api/estados_animal/listar.php",
+    "AnimalListViewModel",
+    "AnimalRegistroViewModel",
+    "AnimalRepository",
+    "ApiService",
+    "RetrofitClient"
+  ]
+}
