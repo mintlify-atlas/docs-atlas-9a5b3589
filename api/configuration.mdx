@@ -1,0 +1,255 @@
+---
+title: Configuration
+description: Setting up backend URLs, local development with XAMPP, and production deployment
+---
+
+## Android App Configuration
+
+The API base URL is configured in `app/build.gradle.kts` using Gradle's `buildConfigField`.
+
+### Build Variants
+
+<CodeGroup>
+```kotlin Debug Build
+buildTypes {
+    debug {
+        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2/huellitas/\"")
+    }
+}
+```
+
+```kotlin Release Build
+defaultConfig {
+    buildConfigField("String", "BASE_URL", "\"https://webculmapp.com/huellitas/\"")
+}
+```
+</CodeGroup>
+
+### Changing the Base URL
+
+1. Open `app/build.gradle.kts`
+2. Locate the `buildConfigField("String", "BASE_URL", ...)` lines
+3. Update the URL strings:
+   - **Debug**: Use `10.0.2.2` for emulator, or your local IP for physical devices
+   - **Release**: Use your production domain
+
+<Warning>
+  After changing `build.gradle.kts`, **clean and rebuild** the project for changes to take effect.
+</Warning>
+
+## Local Development (XAMPP)
+
+### Prerequisites
+
+- XAMPP installed with Apache and MySQL running
+- PHP 8.0 or higher
+- MySQL 5.7 or higher
+
+### Setup Steps
+
+<Steps>
+  <Step title="Place backend files">
+    Copy the `huellitas/` folder to your XAMPP `htdocs` directory:
+    
+    ```bash
+    C:\xampp\htdocs\huellitas\  # Windows
+    /Applications/XAMPP/htdocs/huellitas/  # macOS
+    /opt/lampp/htdocs/huellitas/  # Linux
+    ```
+  </Step>
+
+  <Step title="Create database">
+    1. Open phpMyAdmin: `http://localhost/phpmyadmin`
+    2. Create a new database named `huellitas`
+    3. Import the SQL schema (if provided) or create tables manually
+  </Step>
+
+  <Step title="Configure database credentials">
+    Edit `huellitas/config/env.php`:
+    
+    ```php
+    return [
+        'DB_HOST'    => 'localhost',
+        'DB_NAME'    => 'huellitas',
+        'DB_USER'    => 'root',
+        'DB_PASS'    => '',  // Empty for XAMPP default
+        'DB_CHARSET' => 'utf8mb4',
+    ];
+    ```
+  </Step>
+
+  <Step title="Test the API">
+    Open a browser and navigate to:
+    
+    ```
+    http://localhost/huellitas/api/animales/listar.php
+    ```
+    
+    You should see a JSON response with `{"status": true, ...}`
+  </Step>
+
+  <Step title="Connect Android app">
+    Ensure `build.gradle.kts` debug URL is set to:
+    
+    ```kotlin
+    buildConfigField("String", "BASE_URL", "\"http://10.0.2.2/huellitas/\"")
+    ```
+    
+    <Note>
+      `10.0.2.2` is the special IP that Android emulators use to access the host machine's localhost.
+    </Note>
+  </Step>
+</Steps>
+
+### Testing on Physical Device
+
+If using a physical Android device:
+
+1. Find your computer's local IP address:
+   - Windows: `ipconfig` → look for IPv4 Address
+   - macOS/Linux: `ifconfig` → look for inet address
+
+2. Update debug URL in `build.gradle.kts`:
+   ```kotlin
+   buildConfigField("String", "BASE_URL", "\"http://192.168.1.100/huellitas/\"")
+   ```
+
+3. Ensure your device and computer are on the same Wi-Fi network
+
+## Database Configuration
+
+The database connection uses a Singleton pattern in `config/Database.php:58`.
+
+### Connection Settings
+
+```php
+$dsn = sprintf(
+    'mysql:host=%s;dbname=%s;charset=%s',
+    $env['DB_HOST'],
+    $env['DB_NAME'],
+    $env['DB_CHARSET']
+);
+
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::ATTR_STRINGIFY_FETCHES  => false,
+];
+```
+
+<Info>
+  The database uses **prepared statements** (`PDO::ATTR_EMULATE_PREPARES => false`) to prevent SQL injection.
+</Info>
+
+### Error Handling
+
+If the database connection fails, the API returns:
+
+```json
+{
+  "status": false,
+  "message": "Error de conexión a la base de datos"
+}
+```
+
+With HTTP status code `500`.
+
+## Production Deployment (HostGator)
+
+### Upload Files
+
+1. Connect via FTP/cPanel File Manager
+2. Upload the `huellitas/` folder to `public_html/`
+3. Ensure folder structure:
+   ```
+   public_html/
+   └── huellitas/
+       ├── api/
+       ├── config/
+       ├── models/
+       ├── helpers/
+       └── uploads/
+   ```
+
+### Set Upload Permissions
+
+```bash
+chmod 755 huellitas/uploads/
+```
+
+This allows the PHP script to write uploaded images.
+
+### Configure Production Database
+
+Edit `huellitas/config/env.php` with HostGator credentials:
+
+```php
+return [
+    'DB_HOST'    => 'localhost',  // Usually localhost on shared hosting
+    'DB_NAME'    => 'your_cpanel_user_huellitas',
+    'DB_USER'    => 'your_cpanel_user',
+    'DB_PASS'    => 'your_database_password',
+    'DB_CHARSET' => 'utf8mb4',
+];
+```
+
+### Update Android App
+
+In `app/build.gradle.kts`, ensure the production URL matches your domain:
+
+```kotlin
+defaultConfig {
+    buildConfigField("String", "BASE_URL", "\"https://yourdomin.com/huellitas/\"")
+}
+```
+
+### Test Production API
+
+Visit:
+```
+https://yourdomain.com/huellitas/api/animales/listar.php
+```
+
+<Check>
+  If you see JSON output, the API is working correctly!
+</Check>
+
+## Environment Variables
+
+The `config/env.php` file contains sensitive credentials. **Do not commit this file to version control.**
+
+Add to `.gitignore`:
+```
+config/env.php
+uploads/*.jpg
+uploads/*.png
+uploads/*.webp
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection timeout on Android emulator">
+    - Verify XAMPP Apache is running
+    - Check firewall isn't blocking port 80
+    - Use `10.0.2.2` for emulator, not `localhost`
+  </Accordion>
+
+  <Accordion title="500 Internal Server Error">
+    - Check PHP error logs in XAMPP control panel
+    - Verify `config/env.php` exists and has correct credentials
+    - Ensure database tables exist
+  </Accordion>
+
+  <Accordion title="Image upload fails">
+    - Check `uploads/` folder exists and has write permissions (755)
+    - Verify `upload_max_filesize` and `post_max_size` in `php.ini`
+    - Default limit is 5MB in the API code
+  </Accordion>
+
+  <Accordion title="CORS errors in browser">
+    - CORS is enabled by default (`Access-Control-Allow-Origin: *`)
+    - If still blocked, check Apache `.htaccess` configuration
+  </Accordion>
+</AccordionGroup>

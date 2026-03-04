@@ -1,0 +1,273 @@
+---
+title: FilterChipRow Component
+description: Horizontal scrollable row of filter chips for sorting and filtering animal lists
+---
+
+## Overview
+
+`FilaChipsFiltro` provides a horizontally scrollable row of Material 3 FilterChips for sorting the animal list. It supports three filter options and integrates with a date picker for date-based filtering.
+
+## Component Signature
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilaChipsFiltro(
+    filtroActual: OpcionFiltro,
+    fechaSeleccionada: Long?,
+    alSeleccionarFiltro: (OpcionFiltro) -> Unit,
+    alSolicitarCalendario: () -> Unit,
+    modifier: Modifier = Modifier
+)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `filtroActual` | `OpcionFiltro` | Currently selected filter option |
+| `fechaSeleccionada` | `Long?` | Selected date timestamp in milliseconds (UTC), used only for `POR_FECHA` filter |
+| `alSeleccionarFiltro` | `(OpcionFiltro) -> Unit` | Callback invoked when a filter option is selected |
+| `alSolicitarCalendario` | `() -> Unit` | Callback to open the date picker dialog |
+| `modifier` | `Modifier` | External layout modifier (optional) |
+
+## Filter Options
+
+The component supports three filter types defined in `OpcionFiltro` enum:
+
+### RECIENTES
+- **Icon**: `Icons.Outlined.TrendingUp`
+- **Label**: "Recientes"
+- **Behavior**: Shows most recently registered animals first
+
+### POR_FECHA
+- **Icon**: `Icons.Outlined.CalendarMonth`
+- **Label**: "Por fecha" or formatted date when selected
+- **Behavior**: Opens date picker, filters to animals registered on selected date
+- **Special Feature**: Label changes to show selected date (e.g., "15 Mar 2026")
+
+### ANTIGUOS
+- **Icon**: `Icons.Outlined.TrendingDown`
+- **Label**: "Antiguos"
+- **Behavior**: Shows oldest registered animals first
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/FilterChipRow.kt:59-75`
+
+## Features
+
+### Horizontal Scrolling
+
+The chip row is horizontally scrollable to accommodate all filter options:
+
+```kotlin
+Row(
+    modifier = modifier
+        .fillMaxWidth()
+        .horizontalScroll(rememberScrollState())
+        .padding(horizontal = 16.dp, vertical = 8.dp),
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
+)
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/FilterChipRow.kt:52-57`
+
+### Dynamic Date Label
+
+When the "Por fecha" filter is selected and a date is chosen, the chip label updates to display the formatted date:
+
+```kotlin
+val etiqueta = if (opcion == OpcionFiltro.POR_FECHA && estaSeleccionado && fechaSeleccionada != null) {
+    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { 
+        timeInMillis = fechaSeleccionada 
+    }
+    DateFormat.format("dd MMM yyyy", cal).toString()
+} else {
+    opcion.etiqueta
+}
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/FilterChipRow.kt:69-74`
+
+### Date Picker Integration
+
+The "Por fecha" chip has special behavior - clicking it opens a calendar dialog:
+
+```kotlin
+FilterChip(
+    selected = estaSeleccionado,
+    onClick = {
+        if (opcion == OpcionFiltro.POR_FECHA) {
+            alSolicitarCalendario()
+        } else {
+            alSeleccionarFiltro(opcion)
+        }
+    }
+)
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/FilterChipRow.kt:76-84`
+
+## Styling
+
+### Chip Colors
+
+Custom colors are applied to match the Huellitas theme:
+
+```kotlin
+colors = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = GradientStart.copy(alpha = 0.15f),
+    selectedLabelColor = PurpleDark,
+    selectedLeadingIconColor = PurpleDark,
+    labelColor = Color(0xFF1D1A20),
+    iconColor = Color(0xFF49454F)
+)
+```
+
+**Selected State**:
+- Container: Light purple background (15% opacity)
+- Label: Dark purple (`PurpleDark`)
+- Icon: Dark purple (`PurpleDark`)
+
+**Unselected State**:
+- Label: Dark gray (`#1D1A20`)
+- Icon: Medium gray (`#49454F`)
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/FilterChipRow.kt:93-99`
+
+### Icon Size
+
+All icons are sized uniformly:
+
+```kotlin
+leadingIcon = {
+    Icon(
+        imageVector = icono,
+        contentDescription = opcion.etiqueta,
+        modifier = Modifier.size(18.dp)
+    )
+}
+```
+
+## Usage Example
+
+```kotlin
+import androidx.compose.runtime.*
+import com.example.huellitas.model.OpcionFiltro
+import com.example.huellitas.ui.components.FilaChipsFiltro
+
+@Composable
+fun AnimalListScreen() {
+    var filtroActual by remember { mutableStateOf(OpcionFiltro.RECIENTES) }
+    var fechaSeleccionada by remember { mutableStateOf<Long?>(null) }
+    var mostrarDatePicker by remember { mutableStateOf(false) }
+
+    Column {
+        FilaChipsFiltro(
+            filtroActual = filtroActual,
+            fechaSeleccionada = fechaSeleccionada,
+            alSeleccionarFiltro = { filtro ->
+                filtroActual = filtro
+                // Apply filter logic
+            },
+            alSolicitarCalendario = {
+                mostrarDatePicker = true
+            }
+        )
+
+        if (mostrarDatePicker) {
+            DatePickerDialog(
+                onDateSelected = { timestamp ->
+                    fechaSeleccionada = timestamp
+                    filtroActual = OpcionFiltro.POR_FECHA
+                    mostrarDatePicker = false
+                },
+                onDismiss = { mostrarDatePicker = false }
+            )
+        }
+
+        // Animal list content
+        LazyColumn {
+            items(filteredAnimals) { animal ->
+                TarjetaAnimal(animal = animal)
+            }
+        }
+    }
+}
+```
+
+## Visual Layout
+
+```
+┌──────────────────────────────────────────────┐
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐    │
+│  │ ↗ Recent │ │ 📅 15 Mar│ │ ↘ Oldest │ →  │
+│  └──────────┘ └──────────┘ └──────────┘    │
+└──────────────────────────────────────────────┘
+         Scrollable horizontally
+```
+
+## State Management
+
+The component is stateless - all state is managed by the parent:
+
+```kotlin
+// Parent screen manages state
+var filtroActual by remember { mutableStateOf(OpcionFiltro.RECIENTES) }
+var fechaSeleccionada by remember { mutableStateOf<Long?>(null) }
+
+// Pass state and callbacks to component
+FilaChipsFiltro(
+    filtroActual = filtroActual,
+    fechaSeleccionada = fechaSeleccionada,
+    alSeleccionarFiltro = { filtroActual = it },
+    alSolicitarCalendario = { /* Open date picker */ }
+)
+```
+
+## Preview Examples
+
+### Default State
+```kotlin
+@Preview(showBackground = true)
+@Composable
+private fun FilaChipsFiltroPreview() {
+    HuellitasTheme {
+        FilaChipsFiltro(
+            filtroActual = OpcionFiltro.RECIENTES,
+            fechaSeleccionada = null,
+            alSeleccionarFiltro = {},
+            alSolicitarCalendario = {}
+        )
+    }
+}
+```
+
+### With Selected Date
+```kotlin
+@Preview(showBackground = true)
+@Composable
+private fun FilaChipsConFechaPreview() {
+    HuellitasTheme {
+        FilaChipsFiltro(
+            filtroActual = OpcionFiltro.POR_FECHA,
+            fechaSeleccionada = System.currentTimeMillis(),
+            alSeleccionarFiltro = {},
+            alSolicitarCalendario = {}
+        )
+    }
+}
+```
+
+## Date Format
+
+Dates are formatted using the pattern `"dd MMM yyyy"` which produces output like:
+- "15 Mar 2026"
+- "01 Jan 2025"
+- "30 Dec 2024"
+
+The format uses the device's locale for month abbreviations.
+
+## Related Components
+
+- [AnimalCard](/components/animal-card) - Used with filtered results
+- [Theming](/components/theming) - Color system for chips

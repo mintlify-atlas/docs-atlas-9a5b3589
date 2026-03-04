@@ -1,0 +1,468 @@
+---
+title: Installation
+description: Detailed installation and setup guide for Huellitas
+---
+
+# Installation Guide
+
+This guide provides comprehensive instructions for setting up Huellitas, including development environment requirements, backend configuration, and troubleshooting common issues.
+
+## System Requirements
+
+### Development Environment
+
+<CardGroup cols={2}>
+  <Card title="Android Studio" icon="code">
+    **Ladybug or newer** required for Compose support
+  </Card>
+  
+  <Card title="Java Development Kit" icon="java">
+    **JDK 11+** configured in Android Studio
+  </Card>
+  
+  <Card title="Android SDK" icon="android">
+    **Min SDK 24** (Android 7.0) to **Target SDK 36**
+  </Card>
+  
+  <Card title="Gradle" icon="gear">
+    Managed automatically by Android Studio
+  </Card>
+</CardGroup>
+
+### Build Configuration
+
+From `app/build.gradle.kts:14-19`:
+
+```kotlin app/build.gradle.kts
+defaultConfig {
+    applicationId = "com.example.huellitas"
+    minSdk = 24
+    targetSdk = 36
+    versionCode = 1
+    versionName = "1.0"
+}
+```
+
+<Note>
+The app uses **compile SDK 36** with minor API level 1, targeting the latest Android features.
+</Note>
+
+### Java Compatibility
+
+From `app/build.gradle.kts:44-47`:
+
+```kotlin app/build.gradle.kts
+compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+```
+
+## Installation Steps
+
+### 1. Install Android Studio
+
+If you don't have Android Studio installed:
+
+<Steps>
+  <Step title="Download Android Studio">
+    Visit [developer.android.com/studio](https://developer.android.com/studio) and download Android Studio Ladybug or newer.
+  </Step>
+
+  <Step title="Run the Installer">
+    Follow the installation wizard. Ensure these components are selected:
+    - Android SDK
+    - Android SDK Platform
+    - Android Virtual Device (for emulator)
+  </Step>
+
+  <Step title="Configure SDK">
+    During first launch, Android Studio will download necessary SDK components. Install:
+    - **Android 14.0 (API 36)** - Target SDK
+    - **Android 7.0 (API 24)** - Minimum SDK
+  </Step>
+</Steps>
+
+### 2. Install JDK
+
+Verify JDK installation:
+
+```bash
+java -version
+```
+
+You should see Java version 11 or higher. If not:
+
+<Tabs>
+  <Tab title="Windows">
+    1. Download JDK 11+ from [Oracle](https://www.oracle.com/java/technologies/downloads/) or [OpenJDK](https://adoptium.net/)
+    2. Run the installer
+    3. Set `JAVA_HOME` environment variable to JDK installation path
+    4. Add `%JAVA_HOME%\bin` to system PATH
+  </Tab>
+  
+  <Tab title="macOS">
+    Install via Homebrew:
+    ```bash
+    brew install openjdk@11
+    ```
+    
+    Link the installation:
+    ```bash
+    sudo ln -sfn /opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
+    ```
+  </Tab>
+  
+  <Tab title="Linux">
+    Ubuntu/Debian:
+    ```bash
+    sudo apt update
+    sudo apt install openjdk-11-jdk
+    ```
+    
+    Fedora:
+    ```bash
+    sudo dnf install java-11-openjdk-devel
+    ```
+  </Tab>
+</Tabs>
+
+### 3. Clone and Open Project
+
+```bash
+git clone https://github.com/Alfredogc21/huellitas.git
+cd huellitas
+```
+
+Open in Android Studio:
+1. Launch Android Studio
+2. Select **File > Open**
+3. Navigate to the `huellitas` directory
+4. Click **OK**
+
+### 4. Sync Dependencies
+
+Android Studio will automatically trigger a Gradle sync. If it doesn't:
+
+```
+File > Sync Project with Gradle Files
+```
+
+The project uses these key dependencies from `app/build.gradle.kts:54-75`:
+
+<AccordionGroup>
+  <Accordion title="Core Android Libraries">
+    ```kotlin
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    ```
+  </Accordion>
+  
+  <Accordion title="Jetpack Compose & Material 3">
+    ```kotlin
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.material.icons.extended)
+    ```
+  </Accordion>
+  
+  <Accordion title="Networking & Image Loading">
+    ```kotlin
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging)
+    implementation(libs.coil.compose)
+    ```
+  </Accordion>
+  
+  <Accordion title="Camera & Animations">
+    ```kotlin
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.lottie.compose)
+    ```
+  </Accordion>
+  
+  <Accordion title="Coroutines & ViewModel">
+    ```kotlin
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.lifecycle.viewmodel.compose)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Backend Setup
+
+### Local Development (XAMPP)
+
+For local testing with a PHP backend:
+
+<Steps>
+  <Step title="Install XAMPP">
+    Download and install [XAMPP](https://www.apachefriends.org/) for Apache and MySQL support.
+  </Step>
+
+  <Step title="Set Up Backend Files">
+    1. Clone or copy the Huellitas PHP backend to `C:\xampp\htdocs\huellitas\` (Windows) or `/Applications/XAMPP/htdocs/huellitas/` (macOS)
+    2. Ensure the directory structure includes:
+       ```
+       huellitas/
+       ├── api/
+       │   └── animales/
+       │       ├── listar.php
+       │       ├── crear.php
+       │       └── subir_imagen.php
+       └── uploads/
+       ```
+  </Step>
+
+  <Step title="Start XAMPP Services">
+    1. Open XAMPP Control Panel
+    2. Start **Apache** and **MySQL** services
+    3. Verify Apache is running by visiting `http://localhost` in your browser
+  </Step>
+
+  <Step title="Configure Database">
+    1. Open phpMyAdmin at `http://localhost/phpmyadmin`
+    2. Create a database named `huellitas`
+    3. Import the provided SQL schema (if available)
+  </Step>
+
+  <Step title="Test Backend">
+    Visit `http://localhost/huellitas/api/animales/listar.php` to verify the API responds.
+  </Step>
+</Steps>
+
+<Warning>
+**Emulator Configuration**: Android emulators use `10.0.2.2` to access the host machine's localhost. The debug build is pre-configured with this URL in `app/build.gradle.kts:34`.
+
+For physical devices, replace `10.0.2.2` with your computer's local IP address (e.g., `192.168.1.100`).
+</Warning>
+
+### Production Configuration
+
+For production deployment with HostGator or similar hosting:
+
+<Steps>
+  <Step title="Upload Backend Files">
+    1. Connect to your hosting via FTP/SFTP
+    2. Upload the `huellitas` directory to `public_html/huellitas/`
+    3. Set appropriate file permissions for the `uploads/` directory (755 or 775)
+  </Step>
+
+  <Step title="Configure Database">
+    1. Create a MySQL database through your hosting control panel
+    2. Update database credentials in the PHP backend configuration
+    3. Import the database schema
+  </Step>
+
+  <Step title="Update App Configuration">
+    Edit `app/build.gradle.kts:28` to point to your production domain:
+    
+    ```kotlin app/build.gradle.kts
+    buildConfigField("String", "BASE_URL", "\"https://your-domain.com/huellitas/\"")
+    ```
+    
+    <Tip>
+    Keep the trailing slash in the URL to ensure proper endpoint resolution.
+    </Tip>
+  </Step>
+
+  <Step title="Build Release APK">
+    In Android Studio:
+    1. Select **Build > Build Bundle(s) / APK(s) > Build APK(s)**
+    2. The release build will use your production URL
+    3. Find the APK in `app/build/outputs/apk/release/`
+  </Step>
+</Steps>
+
+## Build Types
+
+Huellitas has two build types configured in `app/build.gradle.kts:31-42`:
+
+<CodeGroup>
+
+```kotlin Debug Build
+debug {
+    // Local XAMPP server via emulator
+    buildConfigField("String", "BASE_URL", "\"http://10.0.2.2/huellitas/\"")
+}
+```
+
+```kotlin Release Build
+release {
+    isMinifyEnabled = false
+    proguardFiles(
+        getDefaultProguardFile("proguard-android-optimize.txt"),
+        "proguard-rules.pro"
+    )
+}
+```
+
+</CodeGroup>
+
+<Note>
+Debug builds automatically connect to local XAMPP. Release builds use the production URL from `defaultConfig`.
+</Note>
+
+## Permissions
+
+The app requires these permissions from `app/src/main/AndroidManifest.xml:4-6`:
+
+```xml AndroidManifest.xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+```
+
+- **INTERNET** - Required for API communication
+- **CAMERA** - Required for photo capture with CameraX
+
+<Warning>
+Camera is marked as `required="false"` to allow installation on devices without cameras, but photo capture features won't work.
+</Warning>
+
+## Troubleshooting
+
+### Gradle Sync Failures
+
+<AccordionGroup>
+  <Accordion title="Could not resolve dependencies">
+    **Cause**: Network issues or outdated Gradle version.
+    
+    **Solution**:
+    1. Check internet connection
+    2. Invalidate caches: **File > Invalidate Caches / Restart**
+    3. Update Gradle wrapper if needed
+  </Accordion>
+  
+  <Accordion title="Unsupported class file major version">
+    **Cause**: JDK version mismatch.
+    
+    **Solution**:
+    1. Verify JDK 11+ is installed: `java -version`
+    2. In Android Studio: **File > Project Structure > SDK Location**
+    3. Set JDK location to Java 11 or higher
+  </Accordion>
+  
+  <Accordion title="SDK license agreement not accepted">
+    **Cause**: Android SDK licenses not accepted.
+    
+    **Solution**:
+    ```bash
+    cd ~/Android/Sdk/tools/bin
+    ./sdkmanager --licenses
+    ```
+    Accept all licenses when prompted.
+  </Accordion>
+</AccordionGroup>
+
+### Runtime Issues
+
+<AccordionGroup>
+  <Accordion title="App crashes on launch">
+    **Cause**: Usually permissions or API connection issues.
+    
+    **Solution**:
+    1. Check Logcat in Android Studio for stack traces
+    2. Verify backend URL is accessible
+    3. Ensure permissions are granted in device settings
+  </Accordion>
+  
+  <Accordion title="Cannot connect to backend">
+    **Cause**: Incorrect URL or backend not running.
+    
+    **Solution**:
+    - **Debug build**: Ensure XAMPP is running and Apache is started
+    - **Emulator**: Verify using `10.0.2.2` for localhost
+    - **Physical device**: Use your computer's local IP (find with `ipconfig` or `ifconfig`)
+    - Test backend URL in browser first
+  </Accordion>
+  
+  <Accordion title="Camera not working">
+    **Cause**: Permission denied or device has no camera.
+    
+    **Solution**:
+    1. Grant camera permission in device settings
+    2. Check **Settings > Apps > Huellitas > Permissions**
+    3. If testing on emulator, ensure virtual device has camera enabled
+  </Accordion>
+  
+  <Accordion title="Images not uploading">
+    **Cause**: Backend upload directory permissions or network issues.
+    
+    **Solution**:
+    1. Verify `uploads/` directory exists in backend
+    2. Set directory permissions to 755 or 775
+    3. Check network connectivity
+    4. Review backend logs for PHP errors
+  </Accordion>
+</AccordionGroup>
+
+### Build Issues
+
+<AccordionGroup>
+  <Accordion title="Build failed with compilation errors">
+    **Cause**: Kotlin or Compose compiler issues.
+    
+    **Solution**:
+    1. Clean project: **Build > Clean Project**
+    2. Rebuild: **Build > Rebuild Project**
+    3. Invalidate caches: **File > Invalidate Caches / Restart**
+  </Accordion>
+  
+  <Accordion title="Out of memory during build">
+    **Cause**: Insufficient heap memory for Gradle.
+    
+    **Solution**:
+    Edit `gradle.properties` and add:
+    ```properties
+    org.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Network Security Configuration
+
+The app includes a network security configuration at `app/src/main/AndroidManifest.xml:17`:
+
+```xml
+android:networkSecurityConfig="@xml/network_security_config"
+```
+
+This allows cleartext HTTP traffic for local development. For production, consider using HTTPS only.
+
+## What's Next?
+
+Now that you have Huellitas installed:
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Run the app and register your first animal
+  </Card>
+  
+  <Card title="Architecture" icon="diagram-project" href="/architecture/overview">
+    Understand the MVVM structure and code organization
+  </Card>
+  
+  <Card title="Backend Setup" icon="server" href="/api/configuration">
+    Configure and deploy the PHP backend
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore available endpoints and data structures
+  </Card>
+</CardGroup>
+
+## Need More Help?
+
+If you're still experiencing issues:
+- Check the [GitHub Issues](https://github.com/Alfredogc21/huellitas/issues) for known problems
+- Ensure your development environment meets all requirements listed at the top of this guide

@@ -1,0 +1,129 @@
+---
+title: API Overview
+description: REST API backend structure, base URLs, and response format
+---
+
+## Base URL
+
+The Huellitas API uses different base URLs depending on the build configuration:
+
+<CodeGroup>
+```bash Debug (Local XAMPP)
+http://10.0.2.2/huellitas/
+```
+
+```bash Release (Production)
+https://webculmapp.com/huellitas/
+```
+</CodeGroup>
+
+These URLs are configured in `app/build.gradle.kts` using `buildConfigField`:
+
+- **Debug builds**: Point to `10.0.2.2` (Android emulator's localhost)
+- **Release builds**: Point to production HostGator domain
+
+## Architecture
+
+The backend is built with:
+
+- **PHP 8.0+** with strict types (`declare(strict_types=1)`)
+- **MySQL** database with PDO
+- **REST principles** with JSON request/response
+- **CORS enabled** for cross-origin requests
+
+## Authentication
+
+<Note>
+The current API does not implement authentication. All endpoints are publicly accessible.
+</Note>
+
+## Response Format
+
+All API responses follow a consistent JSON structure:
+
+```json
+{
+  "status": true,
+  "message": "Operación exitosa",
+  "data": { ... }
+}
+```
+
+<ResponseField name="status" type="boolean" required>
+  Indicates if the request was successful (`true`) or failed (`false`)
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable message describing the result
+</ResponseField>
+
+<ResponseField name="data" type="object | array | null" required>
+  Response payload. `null` on errors, otherwise contains the requested data
+</ResponseField>
+
+### Success Response Example
+
+```json
+{
+  "status": true,
+  "message": "Animales obtenidos correctamente",
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Max",
+      "tipo_animal": "Perro",
+      "ubicacion": "Parque Central"
+    }
+  ]
+}
+```
+
+### Error Response Example
+
+```json
+{
+  "status": false,
+  "message": "El campo 'ubicacion' es obligatorio.",
+  "data": null
+}
+```
+
+## HTTP Status Codes
+
+| Code | Meaning | When Used |
+|------|---------|----------|
+| 200 | OK | Successful GET/PUT/DELETE |
+| 201 | Created | Successful POST (resource created) |
+| 400 | Bad Request | Validation errors, missing fields |
+| 405 | Method Not Allowed | Wrong HTTP method used |
+| 500 | Internal Server Error | Database or server errors |
+
+## CORS Configuration
+
+All endpoints include these headers:
+
+```php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+```
+
+OPTIONS requests (preflight) return `200` immediately.
+
+## Retrofit Client
+
+The Android app uses Retrofit with:
+
+- **Gson** converter for JSON serialization
+- **OkHttp** logging interceptor (debug only)
+- **30-second** timeouts for all operations
+
+```kotlin
+val retrofit = Retrofit.Builder()
+    .baseUrl(BuildConfig.BASE_URL)
+    .client(httpClient)
+    .addConverterFactory(GsonConverterFactory.create())
+    .build()
+```
+
+See `RetrofitClient.kt:36` for the full configuration.

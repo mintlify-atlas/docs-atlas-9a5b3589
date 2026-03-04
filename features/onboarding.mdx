@@ -1,0 +1,434 @@
+---
+title: Onboarding Flow
+description: Splash screen and multi-step welcome experience for first-time users
+---
+
+The Onboarding Flow introduces new users to Huellitas through a three-screen sequence: a branded splash screen, a visually rich welcome screen, and an introduction screen explaining the app's purpose. This flow only appears on first launch.
+
+## Flow Sequence
+
+1. **Splash Screen** (`PantallaCarga`) - 3 seconds, animated logo
+2. **Welcome Screen** (`PantallaBienvenida`) - Visual introduction with photos
+3. **Introduction Screen** (`PantallaIntroduccion`) - Feature explanation and navigation choice
+
+## Splash Screen
+
+The splash screen displays the Huellitas logo with a subtle pulse animation:
+
+```kotlin
+@Composable
+fun PantallaCarga(alTerminarCarga: () -> Unit) {
+    val transicionInfinita = rememberInfiniteTransition(label = "logo_pulse")
+    val escalaLogo by transicionInfinita.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "escala_logo"
+    )
+
+    var textoVisible by remember { mutableStateOf(false) }
+    val alfaTexto by animateFloatAsState(
+        targetValue = if (textoVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 800)
+    )
+
+    LaunchedEffect(Unit) {
+        textoVisible = true
+        delay(3000L)
+        alTerminarCarga()
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize().background(Color.White),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.logo_huellitas),
+            contentDescription = "Logo Huellitas a Salvo",
+            modifier = Modifier.size(220.dp).scale(escalaLogo)
+        )
+    }
+}
+```
+
+**Animation Details**:
+- **Pulse Effect**: Logo scales from 0.95x to 1.05x in 1.2-second cycles
+- **Text Fade-in**: App name fades in over 800ms (currently hidden in the code)
+- **Duration**: 3 seconds total before transitioning
+
+**Design**:
+- White background
+- Centered logo (220dp)
+- System bars padding for edge-to-edge display
+
+## Welcome Screen
+
+The welcome screen features a custom chevron shape, logo, photo collage, and call-to-action:
+
+### Layout Structure
+
+```kotlin
+@Composable
+fun PantallaBienvenida(alSiguiente: () -> Unit) {
+    val esModoOscuro = isSystemInDarkTheme()
+    val coloresGradiente = if (esModoOscuro) {
+        listOf(GradientDarkStart, GradientDarkEnd)
+    } else {
+        listOf(GradientStart, GradientEnd)
+    }
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(brush = Brush.verticalGradient(coloresGradiente))
+    ) {
+        // Purple gradient background
+        // White chevron shape at top
+        // Logo inside chevron
+        // Photo collage
+        // Descriptive text
+        // "iniciar" button
+    }
+}
+```
+
+### Chevron Background Shape
+
+A custom chevron (V-shaped) white area at the top:
+
+```kotlin
+Canvas(modifier = Modifier.fillMaxSize()) {
+    val chevronAlto = altoTotal * 0.35f
+    val path = Path().apply {
+        moveTo(0f, 0f)
+        lineTo(anchoTotal, 0f)
+        lineTo(anchoTotal, chevronAlto * 0.65f)
+        lineTo(anchoTotal / 2f, chevronAlto)
+        lineTo(0f, chevronAlto * 0.65f)
+        close()
+    }
+    drawPath(path, Color.White, style = Fill)
+}
+```
+
+The white chevron occupies the top 35% of the screen and provides contrast for the logo.
+
+### Logo Display
+
+```kotlin
+Column(
+    modifier = Modifier
+        .fillMaxWidth()
+        .fillMaxHeight(0.30f)
+        .alpha(alfaLogo),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.Center
+) {
+    Image(
+        painter = painterResource(id = R.drawable.logo_huellitas),
+        contentDescription = "Logo Huellitas a Salvo",
+        modifier = Modifier.size(160.dp)
+    )
+}
+```
+
+Centered within the white chevron area.
+
+### Photo Collage
+
+Three pet photos arranged in an overlapping layout:
+
+```kotlin
+Box(
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(280.dp)
+        .padding(horizontal = 24.dp)
+        .alpha(alfaImagenes)
+) {
+    // Top row: 2 images side-by-side
+    Row(
+        modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.pet_dog_1),
+            modifier = Modifier.size(150.dp).clip(RoundedCornerShape(20.dp)),
+            contentScale = ContentScale.Crop
+        )
+        Image(
+            painter = painterResource(id = R.drawable.pet_dog_2),
+            modifier = Modifier.size(150.dp).clip(RoundedCornerShape(20.dp)),
+            contentScale = ContentScale.Crop
+        )
+    }
+
+    // Bottom center: overlapping image
+    Image(
+        painter = painterResource(id = R.drawable.pet_puppy_1),
+        modifier = Modifier
+            .size(160.dp)
+            .align(Alignment.BottomCenter)
+            .offset(y = 20.dp)
+            .clip(RoundedCornerShape(20.dp)),
+        contentScale = ContentScale.Crop
+    )
+}
+```
+
+**Layout**:
+- **Top row**: Two 150dp square images (pet_dog_1, pet_dog_2)
+- **Bottom**: One 160dp image (pet_puppy_1) overlapping the top row
+- **Spacing**: 12dp gap between top images, 20dp offset for bottom image
+- **Corners**: All images have 20dp rounded corners
+
+### Call-to-Action Text
+
+```kotlin
+Text(
+    text = "peluditos que\nnecesitan de tu\nayuda",
+    style = MaterialTheme.typography.headlineMedium,
+    fontWeight = FontWeight.Medium,
+    color = Color.White.copy(alpha = 0.95f),
+    textAlign = TextAlign.Center,
+    lineHeight = 38.sp,
+    modifier = Modifier.padding(horizontal = 40.dp).alpha(alfaTexto)
+)
+```
+
+Multi-line emotional appeal in white text on the purple gradient.
+
+### Action Button
+
+```kotlin
+Button(
+    onClick = alSiguiente,
+    modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 48.dp)
+        .height(56.dp)
+        .alpha(alfaBoton),
+    shape = RoundedCornerShape(16.dp),
+    colors = ButtonDefaults.buttonColors(
+        containerColor = Color.White,
+        contentColor = PurpleText
+    ),
+    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+) {
+    Text(
+        text = "iniciar",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        fontSize = 18.sp
+    )
+}
+```
+
+- White background, purple text
+- Full-width with horizontal padding
+- Elevated with 4dp shadow
+- Navigates to Introduction screen
+
+### Staggered Animations
+
+Elements fade in sequentially for a polished feel:
+
+```kotlin
+var logoVisible by remember { mutableStateOf(false) }
+var imagenesVisibles by remember { mutableStateOf(false) }
+var textoVisible by remember { mutableStateOf(false) }
+var botonVisible by remember { mutableStateOf(false) }
+
+LaunchedEffect(Unit) {
+    logoVisible = true
+    delay(300)
+    imagenesVisibles = true
+    delay(300)
+    textoVisible = true
+    delay(200)
+    botonVisible = true
+}
+```
+
+**Sequence**:
+1. Logo fades in (600ms duration)
+2. Wait 300ms
+3. Photos fade in (700ms duration)
+4. Wait 300ms
+5. Text fades in (600ms duration)
+6. Wait 200ms
+7. Button fades in (600ms duration)
+
+## Introduction Screen
+
+Explains the app's purpose through feature cards and offers navigation choices:
+
+### Feature Cards
+
+Three cards explain the core workflow:
+
+```kotlin
+TarjetaCaracteristica(
+    icono = Icons.Outlined.Pets,
+    titulo = "Registra",
+    descripcion = "Encuentra un animal callejero y registra su información para que otros puedan ayudar."
+)
+
+TarjetaCaracteristica(
+    icono = Icons.Outlined.Share,
+    titulo = "Comparte",
+    descripcion = "La información queda visible para toda la comunidad que busca ayudar."
+)
+
+TarjetaCaracteristica(
+    icono = Icons.Outlined.Favorite,
+    titulo = "Conecta",
+    descripcion = "Personas interesadas pueden contactar y darle un hogar al animal."
+)
+```
+
+**Card Design**:
+```kotlin
+@Composable
+private fun TarjetaCaracteristica(
+    icono: ImageVector,
+    titulo: String,
+    descripcion: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(modifier = Modifier.padding(20.dp)) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Icon(
+                    imageVector = icono,
+                    modifier = Modifier.padding(12.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(titulo, fontWeight = FontWeight.SemiBold)
+                Text(descripcion, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+```
+
+Each card has an icon in a colored container, title, and description.
+
+### Page Indicator
+
+```kotlin
+IndicadorPagina(totalPaginas = 2, paginaActual = 1)
+```
+
+Shows users they are on page 2 of the onboarding flow (page 0 = welcome, page 1 = introduction).
+
+### Navigation Buttons
+
+Two action buttons let users choose their path:
+
+```kotlin
+// Primary: View existing animals
+Button(
+    onClick = alVerAnimales,
+    modifier = Modifier.fillMaxWidth().height(56.dp)
+) {
+    Icon(imageVector = Icons.Outlined.List)
+    Spacer(modifier = Modifier.width(8.dp))
+    Text("Ver animales")
+}
+
+// Secondary: Register a new animal
+OutlinedButton(
+    onClick = alRegistrarAnimal,
+    modifier = Modifier.fillMaxWidth().height(56.dp)
+) {
+    Icon(imageVector = Icons.Outlined.PostAdd)
+    Spacer(modifier = Modifier.width(8.dp))
+    Text("Registrar animal")
+}
+```
+
+**Navigation Options**:
+1. **Ver animales**: Navigate to [Animal Listing](/features/animal-listing)
+2. **Registrar animal**: Navigate to [Animal Registration](/features/animal-registration)
+
+Both complete the onboarding flow and mark it as finished (implementation in navigation logic).
+
+## First-Launch Detection
+
+The onboarding flow should only show on first launch. This is typically managed in the main navigation or MainActivity:
+
+```kotlin
+// Example: SharedPreferences check
+val prefs = context.getSharedPreferences("huellitas_prefs", Context.MODE_PRIVATE)
+val esPrimeraVez = prefs.getBoolean("es_primera_vez", true)
+
+if (esPrimeraVez) {
+    // Show splash -> welcome -> introduction
+    prefs.edit().putBoolean("es_primera_vez", false).apply()
+} else {
+    // Go directly to main app
+}
+```
+
+(Note: The actual persistence mechanism is not shown in the provided source files.)
+
+## Screen Transitions
+
+Navigation between onboarding screens is handled by callbacks:
+
+```kotlin
+// In NavHost or similar
+composable("splash") {
+    PantallaCarga(alTerminarCarga = { navController.navigate("welcome") })
+}
+
+composable("welcome") {
+    PantallaBienvenida(alSiguiente = { navController.navigate("introduction") })
+}
+
+composable("introduction") {
+    PantallaIntroduccion(
+        alVerAnimales = { navController.navigate("animal_list") },
+        alRegistrarAnimal = { navController.navigate("registro") }
+    )
+}
+```
+
+## Design Considerations
+
+**Color Themes**:
+- Splash: White background
+- Welcome: Purple gradient (adapts to dark mode)
+- Introduction: Material 3 surface colors
+
+**Animations**:
+- Splash: Infinite pulse on logo
+- Welcome: Staggered fade-in for all elements
+- Introduction: No animations (static content)
+
+**Accessibility**:
+- All images have `contentDescription` for screen readers
+- Button labels are descriptive ("Ver animales", "Registrar animal")
+- High contrast between text and backgrounds
+
+## Related
+
+- [Animal Listing](/features/animal-listing) - Destination after onboarding
+- [Animal Registration](/features/animal-registration) - Alternative destination
+- [Navigation](/architecture/navigation) - App navigation structure
+- [Theming](/components/theming) - Color and typography system

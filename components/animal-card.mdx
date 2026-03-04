@@ -1,0 +1,204 @@
+---
+title: AnimalCard Component
+description: Display animal information in a card layout with image carousel and details
+---
+
+## Overview
+
+`TarjetaAnimal` is the primary card component for displaying animal information throughout the app. It features an asynchronous image loader with caching, a type badge, and organized information display with icons.
+
+## Component Signature
+
+```kotlin
+@Composable
+fun TarjetaAnimal(
+    animal: Animal,
+    modifier: Modifier = Modifier
+)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `animal` | `Animal` | The animal data to display including name, type, breed, description, location, contact, and image URL |
+| `modifier` | `Modifier` | External layout modifier (optional) |
+
+## Features
+
+### Image Handling
+
+- **Asynchronous Loading**: Uses Coil library for efficient image loading from URLs
+- **Caching**: Images are cached in both memory and disk for performance
+  - Memory cache policy: `ENABLED`
+  - Disk cache policy: `ENABLED`
+  - Image size: 600x400px
+- **Crossfade Animation**: Smooth transition when images load
+- **Placeholder**: Shows a paw icon when no image is available
+- **Zoom Dialog**: Tap image to open full-screen zoom view
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/AnimalCard.kt:101-114`
+
+### Type Badge
+
+Displays a colored badge in the top-right corner indicating animal type:
+
+- **Dog** (`PERRO`): Blue badge using `DogChip` color
+- **Cat** (`GATO`): Purple badge using `CatChip` color  
+- **Other** (`OTRO`): Gradient purple using `GradientStart` color
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/AnimalCard.kt:140-160`
+
+### Information Display
+
+The card organizes information with icon-text rows:
+
+1. **Name**: Large title with bold font weight
+2. **Breed**: Medium body text (shown if not empty)
+3. **Description**: Truncated to 2 lines maximum
+4. **Location**: Icon with location text
+5. **Contact**: Icon with contact information
+6. **Registration Date**: Formatted as "dd MMM yyyy"
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/AnimalCard.kt:168-214`
+
+## Usage Example
+
+```kotlin
+import com.example.huellitas.model.Animal
+import com.example.huellitas.model.TipoAnimal
+import com.example.huellitas.ui.components.TarjetaAnimal
+import java.util.Date
+
+@Composable
+fun AnimalListScreen() {
+    LazyColumn {
+        items(animals) { animal ->
+            TarjetaAnimal(
+                animal = animal,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
+```
+
+## Visual Structure
+
+```
+┌──────────────────────────────┐
+│  ┌────────────────────────┐  │
+│  │                        │  │
+│  │     Image (200dp)      │ [Badge] │
+│  │                        │  │
+│  └────────────────────────┘  │
+│                              │
+│  Animal Name (Title)         │
+│  Breed (Body Medium)         │
+│  ──────────────────────      │
+│  Description (2 lines max)   │
+│                              │
+│  📍 Location                 │
+│  📞 Contact                  │
+│  📅 Date                     │
+└──────────────────────────────┘
+```
+
+## Card Styling
+
+- **Shape**: Rounded corners with 20dp radius
+- **Background**: White (`Color.White`)
+- **Elevation**: 4dp shadow
+- **Content Padding**: 16dp
+- **Image Height**: 200dp
+- **Image Top Corners**: 16dp rounded
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/AnimalCard.kt:83-90`
+
+## Interactive Features
+
+### Image Zoom
+
+When the user taps on an animal image, the card opens a full-screen zoom dialog:
+
+```kotlin
+var mostrarZoom by remember { mutableStateOf(false) }
+
+if (mostrarZoom && animal.imagenUrl != null) {
+    DialogoZoomImagen(
+        imagenUrl = animal.imagenUrl,
+        descripcion = "Foto de ${animal.nombre}",
+        alCerrar = { mostrarZoom = false }
+    )
+}
+```
+
+See [Image Zoom](/components/image-zoom) for more details.
+
+## FilaInfo Helper Component
+
+The card uses an internal helper component for icon-text rows:
+
+```kotlin
+@Composable
+private fun FilaInfo(
+    icono: ImageVector,
+    texto: String,
+    descripcionContenido: String
+)
+```
+
+Features:
+- Icon size: 18dp
+- Icon color: `GradientStart` (purple)
+- Text style: `bodySmall`
+- Spacing: 8dp between icon and text
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/AnimalCard.kt:224-247`
+
+## Preview Examples
+
+The component includes two preview configurations:
+
+### With Image
+```kotlin
+@Preview(showBackground = true)
+@Composable
+private fun TarjetaAnimalConImagenPreview() {
+    HuellitasTheme {
+        TarjetaAnimal(
+            animal = Animal(
+                nombre = "Max",
+                tipo = TipoAnimal.PERRO,
+                raza = "Labrador",
+                descripcion = "Muy juguetón, le encanta correr y jugar con niños.",
+                imagenUrl = "https://images.unsplash.com/..."
+            )
+        )
+    }
+}
+```
+
+### Without Image
+```kotlin
+@Preview(showBackground = true)
+@Composable
+private fun TarjetaAnimalSinImagenPreview() {
+    HuellitasTheme {
+        TarjetaAnimal(
+            animal = Animal(
+                nombre = "Luna",
+                tipo = TipoAnimal.GATO,
+                raza = "Siamés",
+                descripcion = "Tímida pero cariñosa."
+                // No imagenUrl
+            )
+        )
+    }
+}
+```
+
+## Related Components
+
+- [Image Zoom Dialog](/components/image-zoom) - Full-screen image viewer
+- [Theming](/components/theming) - Color and typography system

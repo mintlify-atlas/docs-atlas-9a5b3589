@@ -1,97 +1,210 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Huellitas - Help Street Animals Find Homes"
+mode: "custom"
 ---
 
-## Setting up
+<div className="relative overflow-hidden bg-gradient-to-br from-[#6fc2d2] via-[#5e7b82] to-[#b7d4da] dark:from-[#0f1117] dark:via-[#1a1d27] dark:to-[#242838] py-20">
+  <div className="max-w-6xl mx-auto px-6 lg:px-8">
+    <div className="grid lg:grid-cols-12 gap-12 items-center">
+      <div className="lg:col-span-7">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white dark:text-gray-100 mb-6">
+          Rescue Street Animals, One Paw at a Time
+        </h1>
+        <p className="text-lg sm:text-xl text-white/90 dark:text-gray-300 max-w-2xl mb-8">
+          Huellitas is an Android mobile app that empowers communities to register, track, and help street animals find loving homes through real-time photo capture, location tracking, and collaborative rescue efforts.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a
+            href="/quickstart"
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-white text-[#6fc2d2] hover:bg-gray-50 dark:bg-white dark:text-[#5e7b82] dark:hover:bg-gray-100 font-semibold transition-colors shadow-lg"
+          >
+            Get Started
+          </a>
+          <a
+            href="/features/animal-registration"
+            className="inline-flex items-center px-6 py-3 rounded-lg border-2 border-white/30 bg-white/10 text-white hover:bg-white/20 dark:border-gray-600 dark:bg-[#1a1d27] dark:text-gray-100 dark:hover:bg-[#242838] font-semibold transition-colors"
+          >
+            Explore Features
+          </a>
+        </div>
+      </div>
+      <div className="lg:col-span-5 flex justify-center">
+        <div className="text-9xl">🐾</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    Quick Start
+  </h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+    Get up and running with Huellitas in minutes. Follow these steps to set up your development environment and start helping street animals.
+  </p>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+  <Steps>
+    <Step title="Clone the repository">
+      Clone the Huellitas repository to your local machine and open it in Android Studio.
 
-## Make it yours
+      ```bash
+      git clone https://github.com/Alfredogc21/huellitas.git
+      cd huellitas
+      ```
+    </Step>
 
-Design a docs site that looks great and empowers your users.
+    <Step title="Configure the backend">
+      Set up the backend URL in `app/build.gradle.kts`. For local development, the debug build automatically points to `http://10.0.2.2/huellitas/` (XAMPP local server via Android emulator).
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
+      ```kotlin
+      buildTypes {
+          debug {
+              buildConfigField("String", "BASE_URL", "\"http://10.0.2.2/huellitas/\"")
+          }
+          release {
+              buildConfigField("String", "BASE_URL", "\"https://your-domain.com/huellitas/\"")
+          }
+      }
+      ```
+    </Step>
+
+    <Step title="Sync and build">
+      Open the project in Android Studio, sync Gradle dependencies, and run the app on an emulator or physical device.
+
+      <Note>
+        Minimum SDK 24 (Android 7.0) is required. Target SDK is 36.
+      </Note>
+    </Step>
+
+    <Step title="Start registering animals">
+      Once the app is running, tap the **Register** button to capture photos of street animals, add their location and contact details, and help them find rescue.
+    </Step>
+  </Steps>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    Key Features
+  </h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+    Huellitas provides everything you need to track and help street animals in your community.
+  </p>
+
+  <CardGroup cols={2}>
     <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+      title="Animal Registration"
+      icon="paw"
+      href="/features/animal-registration"
+    >
+      Register street animals with photos, breed, location, contact info, and health descriptions using an intuitive form.
+    </Card>
+    <Card
+      title="Camera Capture"
+      icon="camera"
+      href="/features/camera-capture"
+    >
+      Built-in CameraX integration lets you capture high-quality photos directly within the app without leaving the registration flow.
+    </Card>
+    <Card
+      title="Filterable Listing"
+      icon="filter"
+      href="/features/animal-listing"
+    >
+      Browse registered animals with filters by type (dog, cat, other), sort by date, and search by date picker with pull-to-refresh and infinite scroll.
+    </Card>
+    <Card
+      title="Onboarding Flow"
+      icon="hand-wave"
+      href="/features/onboarding"
+    >
+      First-time users see an animated splash screen and guided introduction to learn how the app works before diving in.
+    </Card>
+  </CardGroup>
+</div>
 
-## Create beautiful pages
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    Explore by Topic
+  </h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+    Dive deeper into Huellitas architecture, UI components, and backend API.
+  </p>
 
-Everything you need to create world-class documentation.
+  <CardGroup cols={3}>
+    <Card
+      title="Architecture"
+      icon="sitemap"
+      href="/architecture/overview"
+    >
+      Learn about the MVVM pattern, navigation, networking, and project structure.
+    </Card>
+    <Card
+      title="UI Components"
+      icon="palette"
+      href="/components/animal-card"
+    >
+      Explore reusable Jetpack Compose components like AnimalCard, FilterChips, and ImageZoom.
+    </Card>
+    <Card
+      title="Backend API"
+      icon="server"
+      href="/api/overview"
+    >
+      PHP REST API documentation with endpoints for listing, creating, and uploading animal data.
+    </Card>
+  </CardGroup>
+</div>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    Technology Stack
+  </h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+    Built with modern Android development tools and best practices.
+  </p>
 
-## Need inspiration?
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="p-6 rounded-2xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27] hover:border-[#6fc2d2] dark:hover:border-[#6fc2d2] transition-colors">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Frontend</h3>
+      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+        <li>• <strong>Kotlin</strong> — Primary language</li>
+        <li>• <strong>Jetpack Compose</strong> — Declarative UI</li>
+        <li>• <strong>Material 3</strong> — Design system</li>
+        <li>• <strong>Navigation Compose</strong> — Screen navigation</li>
+        <li>• <strong>CameraX</strong> — Photo capture</li>
+        <li>• <strong>Coil</strong> — Image loading</li>
+        <li>• <strong>Lottie</strong> — Splash animations</li>
+      </ul>
+    </div>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+    <div className="p-6 rounded-2xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27] hover:border-[#6fc2d2] dark:hover:border-[#6fc2d2] transition-colors">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Backend & Networking</h3>
+      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+        <li>• <strong>PHP</strong> — REST API</li>
+        <li>• <strong>MySQL</strong> — Database</li>
+        <li>• <strong>Retrofit 2</strong> — HTTP client</li>
+        <li>• <strong>OkHttp</strong> — Logging interceptor</li>
+        <li>• <strong>Gson</strong> — JSON serialization</li>
+        <li>• <strong>Coroutines</strong> — Async operations</li>
+        <li>• <strong>ViewModel</strong> — State management</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="rounded-2xl border border-gray-200 dark:border-[#27272a] bg-gradient-to-br from-[#6fc2d2]/10 to-[#b7d4da]/10 dark:from-[#1a1d27] dark:to-[#242838] p-8 text-center">
+    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Ready to make a difference?
+    </h2>
+    <p className="text-base text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
+      Start building with Huellitas today and help street animals find the care and homes they deserve.
+    </p>
+    <a
+      href="/quickstart"
+      className="inline-flex items-center px-6 py-3 rounded-lg bg-[#6fc2d2] text-white hover:bg-[#5e7b82] dark:bg-[#6fc2d2] dark:text-white dark:hover:bg-[#5e7b82] font-semibold transition-colors shadow-lg"
+    >
+      Get Started Now
+    </a>
+  </div>
+</div>

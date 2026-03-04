@@ -1,0 +1,347 @@
+---
+title: API Response Model
+description: Standard response wrapper structure for all API endpoints
+---
+
+## Overview
+
+All Huellitas API endpoints return responses in a consistent JSON format. This wrapper structure is implemented by the `Response` helper class in PHP and the `ApiResponse` data class in Kotlin.
+
+## PHP Implementation
+
+### Response Helper Class
+
+Defined in `helpers/Response.php:8-32`:
+
+```php
+class Response {
+    
+    public static function success(mixed $data, string $message = 'Operación exitosa', int $code = 200): void {
+        http_response_code($code);
+        echo json_encode([
+            'status'  => true,
+            'message' => $message,
+            'data'    => $data,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    public static function error(string $message, int $code = 400): void {
+        http_response_code($code);
+        echo json_encode([
+            'status'  => false,
+            'message' => $message,
+            'data'    => null,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+```
+
+<Info>
+  `JSON_UNESCAPED_UNICODE` ensures Spanish characters (á, é, í, ó, ú, ñ) are not escaped in JSON output.
+</Info>
+
+## Kotlin Implementation
+
+### ApiResponse Data Class
+
+Defined in `dto/ApiResponse.kt:7-11`:
+
+```kotlin
+data class ApiResponse<T>(
+    val status: Boolean,
+    val message: String,
+    val data: T?
+)
+```
+
+Generic type `T` allows the response to wrap any data structure.
+
+## Response Structure
+
+### Success Response
+
+```json
+{
+  "status": true,
+  "message": "Operación exitosa",
+  "data": { ... }
+}
+```
+
+<ResponseField name="status" type="boolean" required>
+  Always `true` for successful responses.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable success message in Spanish:
+  - `"Animales obtenidos correctamente"` (List animals)
+  - `"Animal registrado correctamente"` (Create animal)
+  - `"Imagen subida correctamente"` (Upload image)
+</ResponseField>
+
+<ResponseField name="data" type="object | array | string | number">
+  The actual response payload. Type varies by endpoint:
+  - **Object**: Single animal, upload result
+  - **Array**: List of animals
+  - **null**: On errors
+</ResponseField>
+
+### Error Response
+
+```json
+{
+  "status": false,
+  "message": "El campo 'ubicacion' es obligatorio.",
+  "data": null
+}
+```
+
+<ResponseField name="status" type="boolean" required>
+  Always `false` for error responses.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable error message in Spanish:
+  - Validation errors: `"El campo 'ubicacion' es obligatorio."`
+  - Method errors: `"Método no permitido. Use POST."`
+  - Server errors: `"Error al registrar el animal"`
+</ResponseField>
+
+<ResponseField name="data" type="null">
+  Always `null` on errors.
+</ResponseField>
+
+## HTTP Status Codes
+
+The `Response` class sets appropriate HTTP status codes:
+
+### Success Codes
+
+| Code | Method | Usage |
+|------|--------|-------|
+| 200 | `success()` | Default for GET, PUT, DELETE |
+| 201 | `success(..., 201)` | Resource created (POST) |
+
+### Error Codes
+
+| Code | Method | Usage |
+|------|--------|-------|
+| 400 | `error()` | Default - validation errors |
+| 405 | `error(..., 405)` | Wrong HTTP method |
+| 500 | `error(..., 500)` | Database or server errors |
+
+## Usage Examples
+
+### PHP Backend
+
+<CodeGroup>
+```php Success Response
+Response::success($animales, 'Animales obtenidos correctamente');
+// HTTP 200, status=true
+```
+
+```php Created Response
+Response::success($animalCreado, 'Animal registrado correctamente', 201);
+// HTTP 201, status=true
+```
+
+```php Validation Error
+Response::error('El campo \'ubicacion\' es obligatorio.');
+// HTTP 400, status=false, data=null
+```
+
+```php Method Error
+Response::error('Método no permitido. Use POST.', 405);
+// HTTP 405, status=false, data=null
+```
+
+```php Server Error
+Response::error('Error al registrar el animal', 500);
+// HTTP 500, status=false, data=null
+```
+</CodeGroup>
+
+### Kotlin Android Client
+
+<CodeGroup>
+```kotlin Handling Success
+val response: Response<ApiResponse<List<AnimalDto>>> = 
+    RetrofitClient.apiService.listarAnimales()
+
+if (response.isSuccessful && response.body()?.status == true) {
+    val animales = response.body()?.data ?: emptyList()
+    println("Success: ${response.body()?.message}")
+    println("Found ${animales.size} animals")
+} else {
+    println("Error: ${response.body()?.message}")
+}
+```
+
+```kotlin Handling Errors
+val response = RetrofitClient.apiService.crearAnimal(request)
+
+when {
+    response.isSuccessful && response.body()?.status == true -> {
+        // Success case
+        val animal = response.body()?.data
+        println("Animal created: ${animal?.id}")
+    }
+    response.isSuccessful && response.body()?.status == false -> {
+        // API-level error (validation, etc.)
+        val errorMsg = response.body()?.message ?: "Unknown error"
+        showError(errorMsg)
+    }
+    else -> {
+        // Network or HTTP error
+        showError("Network error: ${response.code()}")
+    }
+}
+```
+
+```kotlin Type-Safe Parsing
+// ApiResponse is generic, so you can use different data types
+val listResponse: ApiResponse<List<AnimalDto>> = ...
+val singleResponse: ApiResponse<AnimalDto> = ...
+val uploadResponse: ApiResponse<Map<String, String>> = ...
+```
+</CodeGroup>
+
+## Response Examples by Endpoint
+
+### List Animals (GET)
+
+```json
+{
+  "status": true,
+  "message": "Animales obtenidos correctamente",
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Max",
+      "tipo_animal": "Perro",
+      "ubicacion": "Parque Central"
+    }
+  ]
+}
+```
+
+Data type: `Array<AnimalDto>`
+
+### Create Animal (POST)
+
+```json
+{
+  "status": true,
+  "message": "Animal registrado correctamente",
+  "data": {
+    "id": 15,
+    "nombre": "Max",
+    "tipo_animal": "Perro",
+    "fecha_registro": "2024-03-16 15:45:30"
+  }
+}
+```
+
+Data type: `AnimalDto`
+
+### Upload Image (POST)
+
+```json
+{
+  "status": true,
+  "message": "Imagen subida correctamente",
+  "data": {
+    "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg"
+  }
+}
+```
+
+Data type: `Map<String, String>`
+
+### Validation Error
+
+```json
+{
+  "status": false,
+  "message": "El campo 'id_tipo_animal' es obligatorio. El campo 'ubicacion' es obligatorio.",
+  "data": null
+}
+```
+
+Data type: `null`
+
+## Error Message Patterns
+
+The API uses consistent Spanish error messages:
+
+### Validation Errors
+
+- `"El campo '{nombre}' es obligatorio."` - Missing required field
+- `"El tipo de animal debe ser 1 (Perro), 2 (Gato) o 3 (Otro)."` - Invalid enum value
+- `"El cuerpo de la solicitud debe ser JSON válido."` - Malformed JSON
+
+### HTTP Method Errors
+
+- `"Método no permitido. Use GET."` - Wrong method for endpoint
+- `"Método no permitido. Use POST."` - Wrong method for endpoint
+
+### Upload Errors
+
+- `"No se envió ninguna imagen."` - No file in request
+- `"Formato no permitido. Use JPG, PNG o WEBP."` - Invalid file type
+- `"La imagen no puede pesar más de 5MB."` - File too large
+- `"El archivo no es una imagen válida."` - Corrupted file
+
+### Server Errors
+
+- `"Error al obtener los animales"` - Database query failed
+- `"Error al registrar el animal"` - Insert failed
+- `"Error al guardar la imagen en el servidor."` - File system error
+- `"Error de conexión a la base de datos"` - Connection failed
+
+## Design Philosophy
+
+### Consistency
+
+Every endpoint returns the same structure, making client-side error handling uniform:
+
+```kotlin
+fun <T> handleResponse(response: Response<ApiResponse<T>>): Result<T> {
+    return when {
+        response.isSuccessful && response.body()?.status == true -> {
+            Result.success(response.body()!!.data!!)
+        }
+        else -> {
+            Result.failure(Exception(response.body()?.message ?: "Unknown error"))
+        }
+    }
+}
+```
+
+### Exit After Response
+
+Both `success()` and `error()` methods call `exit` to prevent further PHP execution:
+
+```php
+echo json_encode([...]);
+exit;  // Stop script execution
+```
+
+This ensures only one response is sent per request.
+
+### Type Safety
+
+Kotlin's generic `ApiResponse<T>` provides compile-time type checking:
+
+```kotlin
+val response: Response<ApiResponse<List<AnimalDto>>> = ...
+// Compiler knows data is List<AnimalDto> if status=true
+```
+
+## Related Resources
+
+- [API Overview](/api/overview) - Response format details
+- [Animal Model](/api/models/animal) - Data structures
+- [List Animals](/api/endpoints/list-animals) - Example responses

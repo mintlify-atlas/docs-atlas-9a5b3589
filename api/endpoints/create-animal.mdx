@@ -1,0 +1,338 @@
+---
+title: Create Animal
+api: POST /api/animales/crear.php
+description: Register a new animal in the database
+---
+
+## Endpoint
+
+```
+POST /api/animales/crear.php
+```
+
+## Headers
+
+```http
+Content-Type: application/json
+```
+
+## Request Body
+
+<ParamField body="id_tipo_animal" type="integer" required>
+  Animal type ID:
+  - `1` - Perro (Dog)
+  - `2` - Gato (Cat)
+  - `3` - Otro (Other)
+  
+  Must be between 1 and 3.
+</ParamField>
+
+<ParamField body="ubicacion" type="string" required>
+  Location where the animal was found. Cannot be empty.
+</ParamField>
+
+<ParamField body="contacto" type="string" required>
+  Contact information (phone, email, etc.). Cannot be empty.
+</ParamField>
+
+<ParamField body="nombre" type="string">
+  Animal's name (optional).
+</ParamField>
+
+<ParamField body="raza" type="string">
+  Breed or race (optional).
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Description of the animal, including appearance, behavior, or circumstances (optional).
+</ParamField>
+
+<ParamField body="imagen_url" type="string">
+  URL of the principal image (optional). Typically obtained from the [upload image endpoint](/api/endpoints/upload-image) first.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean" required>
+  `true` if the animal was created successfully, `false` otherwise
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable result message
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  The created animal object with all fields populated, including the new `id`.
+  
+  See [Animal Model](/api/models/animal) for complete structure.
+</ResponseField>
+
+## Examples
+
+### Minimal Request
+
+Create an animal with only required fields:
+
+<CodeGroup>
+```bash cURL
+curl -X POST http://10.0.2.2/huellitas/api/animales/crear.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_tipo_animal": 1,
+    "ubicacion": "Parque Central",
+    "contacto": "+52 123 456 7890"
+  }'
+```
+
+```kotlin Kotlin (ApiService)
+val request = CrearAnimalRequest(
+    nombre = null,
+    idTipoAnimal = 1,
+    raza = null,
+    descripcion = null,
+    ubicacion = "Parque Central",
+    contacto = "+52 123 456 7890"
+)
+
+val response = RetrofitClient.apiService.crearAnimal(request)
+
+if (response.isSuccessful && response.body()?.status == true) {
+    val animalCreado = response.body()?.data
+    println("Animal created with ID: ${animalCreado?.id}")
+}
+```
+</CodeGroup>
+
+### Complete Request
+
+Create an animal with all optional fields:
+
+<CodeGroup>
+```bash cURL
+curl -X POST http://10.0.2.2/huellitas/api/animales/crear.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Max",
+    "id_tipo_animal": 1,
+    "raza": "Labrador",
+    "descripcion": "Perro amigable, muy juguetón",
+    "ubicacion": "Parque Central, cerca de la fuente",
+    "contacto": "+52 123 456 7890",
+    "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg"
+  }'
+```
+
+```kotlin Kotlin
+val request = CrearAnimalRequest(
+    nombre = "Max",
+    idTipoAnimal = 1,
+    raza = "Labrador",
+    descripcion = "Perro amigable, muy juguetón",
+    ubicacion = "Parque Central, cerca de la fuente",
+    contacto = "+52 123 456 7890",
+    imagenUrl = "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg"
+)
+
+val response = RetrofitClient.apiService.crearAnimal(request)
+```
+</CodeGroup>
+
+### With Image Upload Workflow
+
+Typical flow: upload image first, then create animal:
+
+```kotlin
+// Step 1: Upload image
+val imagePart = MultipartBody.Part.createFormData(
+    "imagen",
+    file.name,
+    file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+)
+
+val uploadResponse = RetrofitClient.apiService.subirImagen(imagePart)
+val imageUrl = uploadResponse.body()?.data?.get("imagen_url")
+
+// Step 2: Create animal with image URL
+val request = CrearAnimalRequest(
+    nombre = "Max",
+    idTipoAnimal = 1,
+    raza = "Labrador",
+    descripcion = "Perro amigable",
+    ubicacion = "Parque Central",
+    contacto = "+52 123 456 7890",
+    imagenUrl = imageUrl  // Use uploaded image URL
+)
+
+val createResponse = RetrofitClient.apiService.crearAnimal(request)
+```
+
+## Success Response
+
+```json
+{
+  "status": true,
+  "message": "Animal registrado correctamente",
+  "data": {
+    "id": 15,
+    "nombre": "Max",
+    "id_tipo_animal": 1,
+    "tipo_animal": "Perro",
+    "raza": "Labrador",
+    "descripcion": "Perro amigable, muy juguetón",
+    "ubicacion": "Parque Central, cerca de la fuente",
+    "contacto": "+52 123 456 7890",
+    "id_estado": 1,
+    "estado": "Activo",
+    "fecha_registro": "2024-03-16 15:45:30",
+    "updated_at": "2024-03-16 15:45:30",
+    "imagenes": [
+      {
+        "id": 8,
+        "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg",
+        "es_principal": 1,
+        "created_at": "2024-03-16 15:45:30"
+      }
+    ]
+  }
+}
+```
+
+HTTP Status: `201 Created`
+
+## Error Responses
+
+### Missing Required Fields
+
+```json
+{
+  "status": false,
+  "message": "El campo 'ubicacion' es obligatorio. El campo 'contacto' es obligatorio.",
+  "data": null
+}
+```
+
+HTTP Status: `400 Bad Request`
+
+### Invalid Animal Type
+
+```json
+{
+  "status": false,
+  "message": "El tipo de animal debe ser 1 (Perro), 2 (Gato) o 3 (Otro).",
+  "data": null
+}
+```
+
+HTTP Status: `400 Bad Request`
+
+### Invalid JSON
+
+```json
+{
+  "status": false,
+  "message": "El cuerpo de la solicitud debe ser JSON válido.",
+  "data": null
+}
+```
+
+HTTP Status: `400 Bad Request`
+
+### Wrong HTTP Method
+
+```json
+{
+  "status": false,
+  "message": "Método no permitido. Use POST.",
+  "data": null
+}
+```
+
+HTTP Status: `405 Method Not Allowed`
+
+### Database Error
+
+```json
+{
+  "status": false,
+  "message": "Error al registrar el animal",
+  "data": null
+}
+```
+
+HTTP Status: `500 Internal Server Error`
+
+## Validation Rules
+
+### Required Fields
+
+The endpoint validates these fields are present and non-empty (see `crear.php:36-48`):
+
+```php
+$camposObligatorios = ['id_tipo_animal', 'ubicacion', 'contacto'];
+```
+
+### Type Validation
+
+`id_tipo_animal` must be an integer between 1 and 3:
+
+```php
+if ($idTipo < 1 || $idTipo > 3) {
+    Response::error('El tipo de animal debe ser 1 (Perro), 2 (Gato) o 3 (Otro).');
+}
+```
+
+See `crear.php:50-54`.
+
+### String Trimming
+
+All string fields are trimmed of whitespace:
+
+```php
+$animal->nombre = isset($input['nombre']) ? trim($input['nombre']) : null;
+```
+
+Empty strings after trimming are treated as `null`.
+
+## Implementation Details
+
+### Transaction Safety
+
+The creation uses a database transaction to ensure atomicity (see `Animal.php:158`):
+
+1. Begin transaction
+2. Insert animal record
+3. If `imagen_url` is provided, insert into `imagenes_animal` table
+4. Commit transaction
+
+If any step fails, the entire operation is rolled back.
+
+### Auto-Increment ID
+
+The `id` is auto-generated by MySQL:
+
+```php
+$animalId = (int) $this->db->lastInsertId();
+```
+
+### Default Values
+
+- `id_estado` defaults to `1` ("Activo")
+- `fecha_registro` and `updated_at` are auto-set by MySQL `CURRENT_TIMESTAMP`
+
+### Response Data
+
+After creation, the endpoint fetches the complete animal record with JOINs (see `crear.php:67-69`):
+
+```php
+$nuevoId = $animal->crear();
+$animalCreado = $animal->obtenerPorId($nuevoId);
+Response::success($animalCreado, 'Animal registrado correctamente', 201);
+```
+
+This ensures the response includes joined data like `tipo_animal` and `estado` names.
+
+## Related Resources
+
+- [Upload Image](/api/endpoints/upload-image) - Upload animal photos before creating the record
+- [Animal Model](/api/models/animal) - Complete animal data structure
+- [List Animals](/api/endpoints/list-animals) - Retrieve created animals

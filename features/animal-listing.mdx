@@ -1,0 +1,380 @@
+---
+title: Animal Listing
+description: Browse registered animals with filters, sorting, and infinite scroll pagination
+---
+
+The Animal Listing screen displays all registered street animals with powerful filtering and sorting options. Users can filter by animal type, sort by date, search by specific dates, and browse through paginated results with pull-to-refresh support.
+
+## User Interface
+
+### Top App Bar
+
+```kotlin
+TopAppBar(
+    title = {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(id = R.drawable.logo_huellitas),
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(text = "Huellitas a Salvo", fontWeight = FontWeight.Bold)
+        }
+    },
+    colors = TopAppBarDefaults.topAppBarColors(
+        containerColor = GradientStart,
+        titleContentColor = Color.White
+    )
+)
+```
+
+The app bar features the Huellitas logo and branding on a purple gradient background.
+
+### Floating Action Button
+
+```kotlin
+ExtendedFloatingActionButton(
+    onClick = alNavegarARegistro,
+    icon = { Icon(Icons.Outlined.Add, contentDescription = "Registrar animal") },
+    text = { Text("Registrar") },
+    containerColor = GradientStart
+)
+```
+
+Always accessible FAB for quick access to [animal registration](/features/animal-registration).
+
+## Filtering System
+
+### Filter by Animal Type
+
+Users can filter by specific animal types using horizontal filter chips:
+
+```kotlin
+FilaTipoAnimal(
+    tipoSeleccionado = tipoSeleccionado,
+    alSeleccionarTipo = { idTipo ->
+        viewModel.seleccionarTipo(idTipo)
+        scope.launch { listState.scrollToItem(0) }
+    }
+)
+```
+
+**Available Filters**:
+- **Todos**: Show all animals (default)
+- **Perro**: Dogs only (ID: 1)
+- **Gato**: Cats only (ID: 2) - Currently hidden
+- **Otro**: Other animals (ID: 3) - Currently hidden
+
+When a type is selected, the ViewModel refetches from the API:
+
+```kotlin
+fun seleccionarTipo(idTipo: Int?) {
+    if (_tipoSeleccionado.value == idTipo) return
+    _tipoSeleccionado.value = idTipo
+    cargarAnimales()
+}
+```
+
+### Sorting Options
+
+Sort controls are provided via `FilaChipsFiltro` component:
+
+```kotlin
+FilaChipsFiltro(
+    filtroActual = filtroActual,
+    fechaSeleccionada = fechaSeleccionada,
+    alSeleccionarFiltro = { opcion ->
+        filtroActual = opcion
+        if (opcion != OpcionFiltro.POR_FECHA) fechaSeleccionada = null
+        scope.launch { listState.scrollToItem(0) }
+    },
+    alSolicitarCalendario = { mostrarCalendario = true }
+)
+```
+
+**Sort Options** (defined in `OpcionFiltro`):
+- **RECIENTES**: Most recently registered first (default)
+- **ANTIGUOS**: Oldest registrations first
+- **POR_FECHA**: Filter by specific calendar date
+
+#### Sorting Implementation
+
+Client-side sorting is applied after fetching:
+
+```kotlin
+private fun cuando(
+    filtro: OpcionFiltro,
+    fechaMs: Long?,
+    lista: List<Animal>
+): List<Animal> = when (filtro) {
+    OpcionFiltro.RECIENTES -> lista.sortedByDescending { it.fechaRegistro }
+    OpcionFiltro.ANTIGUOS -> lista.sortedBy { it.fechaRegistro }
+    OpcionFiltro.POR_FECHA -> {
+        if (fechaMs != null) {
+            val calendarioSeleccionado = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                .apply { timeInMillis = fechaMs }
+            lista.filter { animal ->
+                val c = Calendar.getInstance().apply { time = animal.fechaRegistro }
+                c.get(Calendar.YEAR) == calendarioSeleccionado.get(Calendar.YEAR) &&
+                c.get(Calendar.DAY_OF_YEAR) == calendarioSeleccionado.get(Calendar.DAY_OF_YEAR)
+            }
+        } else lista.sortedByDescending { it.fechaRegistro }
+    }
+}
+```
+
+### Date Picker Dialog
+
+When users select "Por fecha", a Material 3 DatePicker appears:
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DialogoCalendario(
+    alSeleccionarFecha: (Long) -> Unit,
+    alCancelar: () -> Unit
+) {
+    val estadoFecha = rememberDatePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = alCancelar,
+        confirmButton = {
+            TextButton(
+                onClick = { estadoFecha.selectedDateMillis?.let { alSeleccionarFecha(it) } },
+                enabled = estadoFecha.selectedDateMillis != null
+            ) {
+                Text("Seleccionar")
+            }
+        },
+        dismissButton = { TextButton(onClick = alCancelar) { Text("Cancelar") } }
+    ) {
+        DatePicker(state = estadoFecha, title = { Text("Filtrar por fecha") })
+    }
+}
+```
+
+## Pagination
+
+### Infinite Scroll
+
+The app uses infinite scroll to load more animals as users reach the bottom:
+
+```kotlin
+val debeSolicitarMas by remember {
+    derivedStateOf {
+        val totalItems = listState.layoutInfo.totalItemsCount
+        val ultimoVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        totalItems > 0 && ultimoVisible >= totalItems - 3
+    }
+}
+
+LaunchedEffect(debeSolicitarMas) {
+    if (debeSolicitarMas) {
+        viewModel.cargarMas()
+    }
+}
+```
+
+**How it works**:
+1. Monitors the last visible item in the `LazyColumn`
+2. When user scrolls within 3 items of the end, triggers `cargarMas()`
+3. ViewModel fetches the next page and appends results
+
+### ViewModel Pagination Logic
+
+```kotlin
+fun cargarMas() {
+    if (_isCargandoMas.value || !hayMasPaginas) return
+
+    viewModelScope.launch {
+        _isCargandoMas.value = true
+        val siguiente = paginaActual + 1
+
+        when (val resultado = fetchPagina(siguiente)) {
+            is Resultado.Exito -> {
+                paginaActual = siguiente
+                animalesAcumulados.addAll(resultado.datos)
+                hayMasPaginas = resultado.datos.size >= limitePorPagina
+                _estado.value = EstadoListaAnimales.Exito(animalesAcumulados.toList())
+            }
+            is Resultado.Error -> { /* Silently fail */ }
+        }
+        _isCargandoMas.value = false
+    }
+}
+```
+
+- **Page size**: 10 animals per page (`limitePorPagina`)
+- **Accumulation**: New results are appended to existing list
+- **Stop condition**: When a page returns fewer than 10 items
+
+### Loading Indicator
+
+```kotlin
+if (isCargandoMas) {
+    item {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                strokeWidth = 2.dp
+            )
+        }
+    }
+}
+```
+
+Shown at the bottom of the list while loading additional pages.
+
+## Pull-to-Refresh
+
+Material 3 `PullToRefreshBox` enables manual refresh:
+
+```kotlin
+PullToRefreshBox(
+    isRefreshing = isRefreshing,
+    onRefresh = { viewModel.refrescar() },
+    modifier = Modifier.fillMaxSize()
+) {
+    LazyColumn { /* animal cards */ }
+}
+```
+
+**Refresh behavior**:
+```kotlin
+fun refrescar() {
+    viewModelScope.launch {
+        _isRefreshing.value = true
+        paginaActual = 1
+        hayMasPaginas = true
+
+        when (val resultado = fetchPagina(1)) {
+            is Resultado.Exito -> {
+                animalesAcumulados.clear()
+                animalesAcumulados.addAll(resultado.datos)
+                hayMasPaginas = resultado.datos.size >= limitePorPagina
+                _estado.value = EstadoListaAnimales.Exito(animalesAcumulados.toList())
+            }
+            is Resultado.Error -> _estado.value = EstadoListaAnimales.Error(resultado.mensaje)
+        }
+        _isRefreshing.value = false
+    }
+}
+```
+
+Resets pagination and reloads from page 1 without hiding current content.
+
+## Result Counter
+
+Displays count with context-aware messaging:
+
+```kotlin
+val textoContador = if (filtroActual == OpcionFiltro.POR_FECHA && fechaSeleccionada != null) {
+    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { 
+        timeInMillis = fechaSeleccionada!! 
+    }
+    val fechaTexto = DateFormat.format("dd MMMM yyyy", cal).toString()
+    "${animalesFiltrados.size} animales el $fechaTexto"
+} else {
+    "${animalesFiltrados.size} animales encontrados"
+}
+
+Text(
+    text = textoContador,
+    style = MaterialTheme.typography.bodySmall,
+    fontWeight = FontWeight.Medium,
+    color = PurpleDark
+)
+```
+
+## Animal Cards
+
+Each animal is displayed using the reusable `TarjetaAnimal` component:
+
+```kotlin
+LazyColumn(
+    state = listState,
+    contentPadding = PaddingValues(
+        start = 16.dp,
+        end = 16.dp,
+        top = 8.dp,
+        bottom = 88.dp  // Extra space for FAB
+    ),
+    verticalArrangement = Arrangement.spacedBy(16.dp)
+) {
+    items(items = animalesFiltrados, key = { it.id }) { animal ->
+        TarjetaAnimal(animal = animal)
+    }
+}
+```
+
+See [UI Components](/components/animal-card) for `TarjetaAnimal` details.
+
+## Empty and Error States
+
+### Empty State
+
+```kotlin
+@Composable
+private fun EstadoVacio() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Pets,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.outlineVariant
+        )
+        Text(text = "No hay animales registrados")
+        Text(text = "Sé el primero en registrar un animal que necesite ayuda")
+    }
+}
+```
+
+### Error State with Retry
+
+```kotlin
+@Composable
+private fun EstadoError(mensaje: String, alReintentar: () -> Unit) {
+    Column(/* centered */) {
+        Icon(imageVector = Icons.Outlined.Refresh, modifier = Modifier.size(64.dp))
+        Text(text = "No se pudieron cargar los animales")
+        Text(text = mensaje)
+        Button(onClick = alReintentar) {
+            Icon(Icons.Outlined.Refresh)
+            Text("Reintentar")
+        }
+    }
+}
+```
+
+## State Management
+
+**Loading States**:
+```kotlin
+sealed class EstadoListaAnimales {
+    data object Cargando : EstadoListaAnimales()
+    data class Exito(val animales: List<Animal>) : EstadoListaAnimales()
+    data class Error(val mensaje: String) : EstadoListaAnimales()
+}
+```
+
+**State Observation**:
+```kotlin
+when (estadoActual) {
+    is EstadoListaAnimales.Cargando -> { /* Show spinner */ }
+    is EstadoListaAnimales.Error -> { /* Show error UI */ }
+    is EstadoListaAnimales.Exito -> { /* Show list with filters */ }
+}
+```
+
+## Related
+
+- [Animal Registration](/features/animal-registration) - Create new listings
+- [Animal Card Component](/components/animal-card) - Individual card design
+- [AnimalListViewModel](/architecture/mvvm-pattern#animallistviewmodel) - Pagination logic
+- [API Integration](/architecture/networking) - Backend data source

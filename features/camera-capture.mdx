@@ -1,0 +1,402 @@
+---
+title: Camera Capture
+description: CameraX-powered photo capture with flash, camera switching, and gallery integration
+---
+
+The Camera Capture feature provides a full-screen camera interface built with CameraX. Users can take photos, toggle flash, switch between front and back cameras, or select images from their device gallery. The captured photos are used in the [animal registration flow](/features/animal-registration).
+
+## Camera Interface
+
+The camera screen (`PantallaCamara`) is a modal overlay that replaces the registration form:
+
+```kotlin
+if (mostrarCamara) {
+    PantallaCamara(
+        alCapturarFoto = { uri ->
+            viewModel.seleccionarImagen(uri)
+            mostrarCamara = false
+        },
+        alSeleccionarGaleria = {
+            lanzadorGaleria.launch("image/*")
+        },
+        alCerrar = {
+            mostrarCamara = false
+        }
+    )
+}
+```
+
+## Camera Permissions
+
+Permission request is handled before opening the camera:
+
+```kotlin
+val lanzadorPermisoCamara = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestPermission()
+) { concedido ->
+    if (concedido) {
+        mostrarCamara = true
+    } else {
+        scope.launch {
+            snackbarHostState.showSnackbar("Se necesita permiso de cámara para tomar fotos")
+        }
+    }
+}
+
+fun abrirCamara() {
+    if (ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        mostrarCamara = true
+    } else {
+        lanzadorPermisoCamara.launch(Manifest.permission.CAMERA)
+    }
+}
+```
+
+**Permission Flow**:
+1. Check if `CAMERA` permission is already granted
+2. If granted, open camera immediately
+3. If not, show Android permission dialog
+4. On denial, show error Snackbar and remain on registration form
+
+## CameraX Setup
+
+### Preview Configuration
+
+The camera preview is rendered using an `AndroidView` with a `PreviewView`:
+
+```kotlin
+val previewView = remember {
+    PreviewView(context).apply {
+        scaleType = PreviewView.ScaleType.FILL_CENTER
+        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+    }
+}
+
+AndroidView(
+    factory = { previewView },
+    modifier = Modifier.fillMaxSize()
+)
+```
+
+### Camera Lifecycle Binding
+
+Camera is bound to the lifecycle when the composable enters composition or when lens facing changes:
+
+```kotlin
+LaunchedEffect(lensFacing) {
+    val cameraProvider = context.obtenerCameraProvider()
+    cameraProvider.unbindAll()
+
+    val preview = Preview.Builder().build().also {
+        it.surfaceProvider = previewView.surfaceProvider
+    }
+
+    val cameraSelector = CameraSelector.Builder()
+        .requireLensFacing(lensFacing)
+        .build()
+
+    try {
+        val camera = cameraProvider.bindToLifecycle(
+            lifecycleOwner,
+            cameraSelector,
+            preview,
+            imageCapture
+        )
+        cameraRef = camera
+    } catch (_: Exception) { }
+}
+```
+
+**Key Components**:
+- **Preview**: Live camera feed displayed to user
+- **ImageCapture**: Use case for taking photos
+- **CameraSelector**: Chooses front or back camera (default: back)
+
+### Cleanup on Dispose
+
+```kotlin
+DisposableEffect(Unit) {
+    onDispose {
+        try {
+            ProcessCameraProvider.getInstance(context).get().unbindAll()
+        } catch (_: Exception) { }
+    }
+}
+```
+
+Ensures camera resources are released when the composable leaves composition.
+
+## Camera Controls
+
+### Flash Toggle
+
+```kotlin
+var flashActivo by remember { mutableStateOf(false) }
+
+LaunchedEffect(flashActivo, cameraRef) {
+    cameraRef?.cameraControl?.enableTorch(flashActivo)
+}
+
+IconButton(
+    onClick = { flashActivo = !flashActivo },
+    colors = IconButtonDefaults.iconButtonColors(
+        containerColor = Color.Black.copy(alpha = 0.4f)
+    )
+) {
+    Icon(
+        imageVector = if (flashActivo) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
+        tint = if (flashActivo) Color.Yellow else Color.White
+    )
+}
+```
+
+- **On**: Icon turns yellow, torch mode enabled
+- **Off**: Icon is white, torch disabled
+- Flash state persists until camera is closed
+
+### Camera Switch (Front/Back)
+
+```kotlin
+var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+
+IconButton(
+    onClick = {
+        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK)
+            CameraSelector.LENS_FACING_FRONT
+        else
+            CameraSelector.LENS_FACING_BACK
+    }
+) {
+    Icon(imageVector = Icons.Outlined.Cameraswitch, tint = Color.White)
+}
+```
+
+- Toggles between `LENS_FACING_BACK` and `LENS_FACING_FRONT`
+- Triggers `LaunchedEffect(lensFacing)` to rebind camera
+- Seamlessly switches preview
+
+### Photo Capture Button
+
+The capture button is a large circular UI element:
+
+```kotlin
+Box(
+    modifier = Modifier
+        .size(76.dp)
+        .clip(CircleShape)
+        .border(4.dp, Color.White, CircleShape)
+        .clickable(
+            enabled = !capturando,
+            indication = null,
+            interactionSource = remember { MutableInteractionSource() }
+        ) {
+            capturando = true
+            tomarFoto(context, imageCapture) { uri ->
+                capturando = false
+                if (uri != null) alCapturarFoto(uri)
+            }
+        }
+        .padding(6.dp)
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(CircleShape)
+            .background(if (capturando) Color.Gray else Color.White)
+    )
+}
+```
+
+- **Idle state**: White circle
+- **Capturing**: Gray circle, button disabled
+- On success, calls `alCapturarFoto(uri)` callback
+
+### Gallery Button
+
+```kotlin
+IconButton(
+    onClick = alSeleccionarGaleria
+) {
+    Icon(
+        imageVector = Icons.Outlined.PhotoLibrary,
+        tint = Color.White
+    )
+}
+```
+
+Invokes the `alSeleccionarGaleria` callback, which launches the system image picker:
+
+```kotlin
+val lanzadorGaleria = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.GetContent()
+) { uri: Uri? ->
+    if (uri != null) viewModel.seleccionarImagen(uri)
+    mostrarCamara = false
+}
+```
+
+### Close Button
+
+```kotlin
+IconButton(
+    onClick = alCerrar,
+    colors = IconButtonDefaults.iconButtonColors(
+        containerColor = Color.Black.copy(alpha = 0.4f)
+    )
+) {
+    Icon(
+        imageVector = Icons.Outlined.Close,
+        tint = Color.White
+    )
+}
+```
+
+Returns to the registration form without selecting a photo.
+
+## Photo Capture Implementation
+
+The `tomarFoto` function handles the actual image capture:
+
+```kotlin
+private fun tomarFoto(
+    context: Context,
+    imageCapture: ImageCapture,
+    onResult: (Uri?) -> Unit
+) {
+    val archivoFoto = File(
+        context.cacheDir,
+        "huellitas_${System.currentTimeMillis()}.jpg"
+    )
+    val opcionesSalida = ImageCapture.OutputFileOptions.Builder(archivoFoto).build()
+
+    imageCapture.takePicture(
+        opcionesSalida,
+        ContextCompat.getMainExecutor(context),
+        object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                onResult(Uri.fromFile(archivoFoto))
+            }
+            override fun onError(exception: ImageCaptureException) {
+                exception.printStackTrace()
+                onResult(null)
+            }
+        }
+    )
+}
+```
+
+**Process**:
+1. Create a temporary file in `cacheDir` with timestamp-based name
+2. Configure `OutputFileOptions` pointing to the file
+3. Call `takePicture()` with callback
+4. On success, return `Uri.fromFile(archivoFoto)`
+5. On error, return `null` (triggers retry prompt)
+
+**File Location**: `{cacheDir}/huellitas_{timestamp}.jpg`
+
+The URI is later used for upload in `AnimalRegistroViewModel.registrarAnimal()`.
+
+## Camera Provider Helper
+
+Asynchronous camera provider retrieval:
+
+```kotlin
+private suspend fun Context.obtenerCameraProvider(): ProcessCameraProvider =
+    suspendCoroutine { continuacion ->
+        ProcessCameraProvider.getInstance(this).also { future ->
+            future.addListener(
+                { continuacion.resume(future.get()) },
+                ContextCompat.getMainExecutor(this)
+            )
+        }
+    }
+```
+
+Wraps the `ListenableFuture` from CameraX in a coroutine-friendly suspend function.
+
+## UI Layout
+
+The camera screen uses a `Box` with overlays:
+
+```kotlin
+Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    // Full-screen camera preview
+    AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+
+    // Top bar: Close and Flash buttons
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .align(Alignment.TopCenter),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) { /* Close, Flash */ }
+
+    // Bottom controls: Gallery, Capture, Camera Switch
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .align(Alignment.BottomCenter)
+            .navigationBarsPadding()
+    ) { /* Gallery, Capture, Switch */ }
+}
+```
+
+**Layers**:
+1. **Background**: Black fill for letterboxing
+2. **Preview**: Full-screen camera feed
+3. **Top controls**: Semi-transparent dark buttons
+4. **Bottom controls**: Large, centered capture button with flanking icons
+
+## Back Button Handling
+
+The camera screen intercepts the system back button:
+
+```kotlin
+BackHandler { alCerrar() }
+```
+
+Pressing back closes the camera and returns to the registration form.
+
+## Integration with Registration
+
+When a photo is captured, the ViewModel stores the URI:
+
+```kotlin
+fun seleccionarImagen(uri: Uri?) {
+    _imagenUri.value = uri
+}
+```
+
+The registration screen observes this state:
+
+```kotlin
+val imagenUri by viewModel.imagenUri.collectAsState()
+
+ZonaSubirFoto(
+    imagenUri = imagenUri,
+    alAbrirCamara = { abrirCamara() },
+    alEliminarImagen = { viewModel.seleccionarImagen(null) }
+)
+```
+
+See [Animal Registration](/features/animal-registration#photo-upload) for photo preview UI.
+
+## Error Handling
+
+**Permission Denied**: Show Snackbar, remain on registration form
+
+**Camera Unavailable**: Silently catch exceptions in `bindToLifecycle`, allow retry
+
+**Capture Failure**: Return `null` from `tomarFoto`, allowing user to retry
+
+**No Camera Hardware**: CameraX handles gracefully by failing to bind
+
+## Related
+
+- [Animal Registration](/features/animal-registration) - Uses camera for photo upload
+- [Image Upload](/api/endpoints/upload-image) - Backend integration
+- [Installation](/installation) - Required camera permissions

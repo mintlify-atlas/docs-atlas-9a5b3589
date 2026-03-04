@@ -1,0 +1,216 @@
+---
+title: Animal Registration
+description: Complete workflow for registering street animals with photos, location, and contact information
+---
+
+The Animal Registration feature allows users to submit detailed information about street animals they encounter, including photos, description, location, and contact details. The form validates required fields and handles image upload to the backend.
+
+## User Flow
+
+1. **Access the form**: Users tap the "Registrar" floating action button from the home screen
+2. **Add a photo**: Tap the photo upload area to launch the integrated camera
+3. **Select animal type**: Choose from Perro (Dog), Gato (Cat), or Otro (Other) using filter chips
+4. **Fill in details**: Enter optional name, breed, required description, location, and contact info
+5. **Submit**: Tap "Registrar animal" to upload the photo and create the animal record
+6. **Confirmation**: On success, users are returned to the home screen where the new animal appears
+
+## Form Fields
+
+The registration form is organized into three sections:
+
+### Photo Upload (Required)
+
+Users must provide a photo of the animal:
+
+```kotlin
+ZonaSubirFoto(
+    imagenUri = imagenUri,
+    alAbrirCamara = { abrirCamara() },
+    alEliminarImagen = { viewModel.seleccionarImagen(null) }
+)
+```
+
+- Tapping opens the integrated [CameraX capture screen](/features/camera-capture)
+- Shows preview with option to remove and retake
+- Photo is required for submission
+
+### Animal Information
+
+**Type Selection** (Required, defaults to Perro):
+```kotlin
+SelectorTipoAnimal(
+    tipoSeleccionado = tipoSeleccionado,
+    alSeleccionarTipo = { tipoSeleccionado = it }
+)
+```
+
+**Optional Fields**:
+- **Nombre**: Animal's name (if known)
+- **Raza**: Breed or appearance details
+
+**Required Fields**:
+- **Descripción**: Behavior, health condition, and distinguishing features
+  - Multiline text field (3-5 lines)
+  - Validation ensures this is not blank
+
+### Location and Contact (Required)
+
+```kotlin
+OutlinedTextField(
+    value = ubicacion,
+    onValueChange = { ubicacion = it },
+    label = { Text("Ubicación del animal") },
+    leadingIcon = { Icon(Icons.Outlined.LocationOn, contentDescription = null) }
+)
+```
+
+- **Ubicación**: Where the animal was found (street address, landmark, etc.)
+- **Contacto**: Phone number or email for follow-up
+
+Both fields are validated before submission.
+
+## Validation Logic
+
+The `AnimalRegistroViewModel` enforces these rules:
+
+```kotlin
+fun registrarAnimal(
+    nombre: String,
+    tipo: TipoAnimal,
+    raza: String,
+    descripcion: String,
+    ubicacion: String,
+    contacto: String
+) {
+    if (_imagenUri.value == null) {
+        _estadoRegistro.value = EstadoRegistro.Error("La foto es obligatoria.")
+        return
+    }
+    if (descripcion.isBlank()) {
+        _estadoRegistro.value = EstadoRegistro.Error("La descripción es obligatoria.")
+        return
+    }
+    if (ubicacion.isBlank()) {
+        _estadoRegistro.value = EstadoRegistro.Error("La ubicación es obligatoria.")
+        return
+    }
+    if (contacto.isBlank()) {
+        _estadoRegistro.value = EstadoRegistro.Error("El teléfono o email de contacto es obligatorio.")
+        return
+    }
+    // ... proceed with upload
+}
+```
+
+Errors are displayed via a `Snackbar` at the bottom of the screen.
+
+## Submission Flow
+
+### Two-Step Process
+
+The ViewModel handles submission in two stages:
+
+**Step 1: Upload Image**
+```kotlin
+when (val resultadoImagen = repository.subirImagen(getApplication(), uriImagen)) {
+    is Resultado.Exito -> imagenUrl = resultadoImagen.datos
+    is Resultado.Error -> {
+        _estadoRegistro.value = EstadoRegistro.Error(resultadoImagen.mensaje)
+        return@launch
+    }
+}
+```
+
+**Step 2: Create Animal Record**
+```kotlin
+when (val resultado = repository.crearAnimal(
+    nombre = nombre,
+    idTipoAnimal = idTipo,
+    raza = raza,
+    descripcion = descripcion,
+    ubicacion = ubicacion,
+    contacto = contacto,
+    imagenUrl = imagenUrl
+)) {
+    is Resultado.Exito -> EstadoRegistro.Exito(resultado.datos)
+    is Resultado.Error -> EstadoRegistro.Error(resultado.mensaje)
+}
+```
+
+### Loading States
+
+The submit button reflects the current state:
+
+```kotlin
+Button(
+    onClick = { viewModel.registrarAnimal(...) },
+    enabled = !estandoEnviando
+) {
+    if (estandoEnviando) {
+        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = "Registrando...")
+    } else {
+        Icon(imageVector = Icons.Outlined.Done)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = "Registrar animal")
+    }
+}
+```
+
+## Camera Integration
+
+The registration screen integrates with the camera via a modal overlay:
+
+```kotlin
+if (mostrarCamara) {
+    PantallaCamara(
+        alCapturarFoto = { uri ->
+            viewModel.seleccionarImagen(uri)
+            mostrarCamara = false
+        },
+        alSeleccionarGaleria = {
+            lanzadorGaleria.launch("image/*")
+        },
+        alCerrar = {
+            mostrarCamara = false
+        }
+    )
+}
+```
+
+See [Camera Capture](/features/camera-capture) for camera implementation details.
+
+## Error Handling
+
+**Network Errors**: Display error message via Snackbar and reset to allow retry
+```kotlin
+LaunchedEffect(estadoRegistro) {
+    when (val estado = estadoRegistro) {
+        is EstadoRegistro.Error -> {
+            snackbarHostState.showSnackbar(estado.mensaje)
+            viewModel.reiniciarEstado()
+        }
+    }
+}
+```
+
+**Validation Errors**: Show immediately when user attempts to submit without required fields
+
+**Image Upload Failures**: Halt the process before attempting to create the animal record
+
+## UI Components
+
+- **Scaffold** with purple top bar and back navigation
+- **Scrollable Column** to accommodate all form fields
+- **OutlinedTextField** components with Material 3 theming
+- **FilterChip** for type selection
+- **AsyncImage** from Coil for photo preview
+- **SnackbarHost** for error messages
+
+## Related
+
+- [Camera Capture](/features/camera-capture) - CameraX integration
+- [Animal Listing](/features/animal-listing) - Where registered animals appear
+- [AnimalRegistroViewModel](/architecture/mvvm-pattern#animalregistroviewmodel) - State management
+- [API Integration](/architecture/networking) - Backend communication

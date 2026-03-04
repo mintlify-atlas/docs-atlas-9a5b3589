@@ -1,0 +1,309 @@
+---
+title: DialogoZoomImagen Component
+description: Full-screen image zoom dialog with pinch-to-zoom and double-tap gestures
+---
+
+## Overview
+
+`DialogoZoomImagen` is a full-screen dialog component that displays an image with interactive zoom capabilities. It supports pinch-to-zoom, double-tap to zoom, and pan gestures for image navigation.
+
+## Component Signature
+
+```kotlin
+@Composable
+fun DialogoZoomImagen(
+    imagenUrl: String,
+    descripcion: String,
+    alCerrar: () -> Unit
+)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `imagenUrl` | `String` | URL of the image to display |
+| `descripcion` | `String` | Accessibility description for the image |
+| `alCerrar` | `() -> Unit` | Callback invoked when the dialog should close |
+
+## Features
+
+### Full-Screen Display
+
+The dialog takes over the entire screen with a black background:
+
+```kotlin
+Dialog(
+    onDismissRequest = alCerrar,
+    properties = DialogProperties(usePlatformDefaultWidth = false)
+)
+```
+
+- **Background**: Black (`Color.Black`)
+- **Width**: Full screen (platform default width disabled)
+- **Dismissible**: Tapping outside closes the dialog
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/DialogoZoomImagen.kt:52-55`
+
+### Zoom Gestures
+
+The component tracks zoom scale and offset using mutable state:
+
+```kotlin
+var scale by remember { mutableFloatStateOf(1f) }
+var offset by remember { mutableStateOf(Offset.Zero) }
+```
+
+#### Pinch-to-Zoom
+
+Users can pinch to zoom between 1x and 5x:
+
+```kotlin
+detectTransformGestures { _, pan, zoom, _ ->
+    scale = (scale * zoom).coerceIn(1f, 5f)
+    if (scale > 1f) {
+        offset = Offset(
+            x = offset.x + pan.x,
+            y = offset.y + pan.y
+        )
+    } else {
+        offset = Offset.Zero
+    }
+}
+```
+
+- **Minimum Scale**: 1x (original size)
+- **Maximum Scale**: 5x magnification
+- **Pan**: Enabled only when zoomed in (scale > 1f)
+- **Reset**: Panning resets when zoomed back to 1x
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/DialogoZoomImagen.kt:73-84`
+
+#### Double-Tap to Zoom
+
+Double-tapping toggles between 1x and 2.5x zoom:
+
+```kotlin
+detectTapGestures(
+    onDoubleTap = {
+        if (scale > 1.5f) {
+            scale = 1f
+            offset = Offset.Zero
+        } else {
+            scale = 2.5f
+        }
+    }
+)
+```
+
+- **Zoom Out**: If current scale > 1.5x, reset to 1x
+- **Zoom In**: If at or below 1.5x, zoom to 2.5x
+- **Offset**: Resets when zooming out to 1x
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/DialogoZoomImagen.kt:60-70`
+
+### Image Loading
+
+Images are loaded asynchronously using Coil:
+
+```kotlin
+AsyncImage(
+    model = ImageRequest.Builder(LocalContext.current)
+        .data(imagenUrl)
+        .crossfade(true)
+        .build(),
+    contentDescription = descripcion,
+    contentScale = ContentScale.Fit,
+    modifier = Modifier
+        .fillMaxSize()
+        .graphicsLayer(
+            scaleX = scale,
+            scaleY = scale,
+            translationX = offset.x,
+            translationY = offset.y
+        )
+)
+```
+
+- **Content Scale**: `Fit` - image maintains aspect ratio
+- **Crossfade**: Smooth fade-in animation
+- **Graphics Layer**: Applies zoom and pan transformations
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/DialogoZoomImagen.kt:87-102`
+
+### Close Button
+
+A close button is positioned in the top-right corner:
+
+```kotlin
+IconButton(
+    onClick = alCerrar,
+    modifier = Modifier
+        .align(Alignment.TopEnd)
+        .padding(16.dp),
+    colors = IconButtonDefaults.iconButtonColors(
+        containerColor = Color.Black.copy(alpha = 0.5f)
+    )
+) {
+    Icon(
+        imageVector = Icons.Outlined.Close,
+        contentDescription = "Cerrar",
+        tint = Color.White,
+        modifier = Modifier.size(28.dp)
+    )
+}
+```
+
+- **Position**: Top-right corner with 16dp padding
+- **Background**: Semi-transparent black (50% opacity)
+- **Icon**: White close icon, 28dp size
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/components/DialogoZoomImagen.kt:105-120`
+
+## Usage Example
+
+### From AnimalCard
+
+```kotlin
+import androidx.compose.runtime.*
+import com.example.huellitas.ui.components.DialogoZoomImagen
+import com.example.huellitas.ui.components.TarjetaAnimal
+
+@Composable
+fun AnimalDetailScreen(animal: Animal) {
+    var mostrarZoom by remember { mutableStateOf(false) }
+
+    TarjetaAnimal(
+        animal = animal,
+        onImageClick = { mostrarZoom = true }
+    )
+
+    if (mostrarZoom && animal.imagenUrl != null) {
+        DialogoZoomImagen(
+            imagenUrl = animal.imagenUrl,
+            descripcion = "Foto de ${animal.nombre}",
+            alCerrar = { mostrarZoom = false }
+        )
+    }
+}
+```
+
+### Standalone Usage
+
+```kotlin
+import androidx.compose.runtime.*
+import com.example.huellitas.ui.components.DialogoZoomImagen
+
+@Composable
+fun GalleryScreen() {
+    var selectedImage by remember { mutableStateOf<String?>(null) }
+
+    // Gallery grid
+    LazyVerticalGrid(columns = GridCells.Fixed(3)) {
+        items(images) { imageUrl ->
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .aspectRatio(1f)
+                    .clickable { selectedImage = imageUrl }
+            )
+        }
+    }
+
+    // Zoom dialog
+    selectedImage?.let { url ->
+        DialogoZoomImagen(
+            imagenUrl = url,
+            descripcion = "Image from gallery",
+            alCerrar = { selectedImage = null }
+        )
+    }
+}
+```
+
+## Gesture Summary
+
+| Gesture | Action | Result |
+|---------|--------|--------|
+| Pinch out | Zoom in | Scale increases (max 5x) |
+| Pinch in | Zoom out | Scale decreases (min 1x) |
+| Pan (when zoomed) | Move image | Updates offset position |
+| Double tap (at 1x) | Zoom in | Scale set to 2.5x |
+| Double tap (zoomed) | Reset | Scale returns to 1x, offset resets |
+| Tap outside | Close | Dialog dismisses |
+| Close button | Close | Dialog dismisses |
+
+## State Management
+
+The component manages its own zoom state internally:
+
+```kotlin
+var scale by remember { mutableFloatStateOf(1f) }
+var offset by remember { mutableStateOf(Offset.Zero) }
+```
+
+Parent components only need to manage the dialog's visibility:
+
+```kotlin
+var mostrarZoom by remember { mutableStateOf(false) }
+
+if (mostrarZoom) {
+    DialogoZoomImagen(
+        imagenUrl = imageUrl,
+        descripcion = description,
+        alCerrar = { mostrarZoom = false }
+    )
+}
+```
+
+## Visual Structure
+
+```
+┌──────────────────────────────────┐
+│                        [X]        │  ← Close button
+│                                   │
+│                                   │
+│         ┌──────────────┐          │
+│         │              │          │
+│         │    Image     │          │  ← Zoomable image
+│         │              │          │
+│         └──────────────┘          │
+│                                   │
+│                                   │
+│        Black background           │
+└──────────────────────────────────┘
+```
+
+## Accessibility
+
+- **Content Description**: Image description passed to `contentDescription` parameter
+- **Close Button**: Labeled "Cerrar" for screen readers
+- **Dialog Dismiss**: Standard dialog dismiss behavior for accessibility
+
+## Performance Considerations
+
+### Graphics Layer
+
+The component uses `graphicsLayer` for transformations instead of `Modifier.scale()` and `Modifier.offset()`:
+
+```kotlin
+modifier = Modifier
+    .fillMaxSize()
+    .graphicsLayer(
+        scaleX = scale,
+        scaleY = scale,
+        translationX = offset.x,
+        translationY = offset.y
+    )
+```
+
+This approach:
+- Renders transformations on the GPU
+- Avoids recomposition on every gesture update
+- Provides smooth 60fps zoom and pan animations
+
+## Related Components
+
+- [AnimalCard](/components/animal-card) - Primary user of this component
+- [Theming](/components/theming) - Icon and color system

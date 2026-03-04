@@ -1,0 +1,298 @@
+---
+title: List Animals
+api: GET /api/animales/listar.php
+description: Retrieve a paginated list of animals with optional filtering and sorting
+---
+
+## Endpoint
+
+```
+GET /api/animales/listar.php
+```
+
+## Query Parameters
+
+<ParamField query="limite" type="integer" default="10">
+  Maximum number of animals to return per page. Minimum value is 1.
+</ParamField>
+
+<ParamField query="pagina" type="integer" default="1">
+  Page number for pagination. Minimum value is 1.
+</ParamField>
+
+<ParamField query="tipo" type="integer">
+  Filter by animal type:
+  - `1` - Perro (Dog)
+  - `2` - Gato (Cat)
+  - `3` - Otro (Other)
+  
+  If provided, `orden` and `direccion` parameters are ignored.
+</ParamField>
+
+<ParamField query="orden" type="string" default="fecha_registro">
+  Sort column. Allowed values:
+  - `fecha_registro` - Registration date
+  - `nombre` - Animal name
+  - `id` - Animal ID
+  
+  Only used when `tipo` is not specified.
+</ParamField>
+
+<ParamField query="direccion" type="string" default="DESC">
+  Sort direction:
+  - `DESC` - Descending
+  - `ASC` - Ascending
+  
+  Only used when `tipo` is not specified.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean" required>
+  `true` if the request succeeded, `false` otherwise
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable result message
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of animal objects. Each object contains:
+  
+  <Expandable title="Animal object fields">
+    <ResponseField name="id" type="integer">
+      Unique animal ID
+    </ResponseField>
+    
+    <ResponseField name="nombre" type="string | null">
+      Animal's name (optional)
+    </ResponseField>
+    
+    <ResponseField name="id_tipo_animal" type="integer">
+      Animal type ID (1=Perro, 2=Gato, 3=Otro)
+    </ResponseField>
+    
+    <ResponseField name="tipo_animal" type="string">
+      Animal type name (e.g., "Perro", "Gato")
+    </ResponseField>
+    
+    <ResponseField name="raza" type="string | null">
+      Breed (optional)
+    </ResponseField>
+    
+    <ResponseField name="descripcion" type="string | null">
+      Description (optional)
+    </ResponseField>
+    
+    <ResponseField name="ubicacion" type="string">
+      Location where animal was found
+    </ResponseField>
+    
+    <ResponseField name="contacto" type="string">
+      Contact information
+    </ResponseField>
+    
+    <ResponseField name="id_estado" type="integer">
+      State ID
+    </ResponseField>
+    
+    <ResponseField name="estado" type="string">
+      State name (e.g., "Activo", "Adoptado")
+    </ResponseField>
+    
+    <ResponseField name="fecha_registro" type="string">
+      Registration timestamp (MySQL DATETIME format)
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="string">
+      Last update timestamp
+    </ResponseField>
+    
+    <ResponseField name="imagen_url" type="string | null">
+      URL of the principal image, or `null` if no image exists
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic Request
+
+Get the first 10 animals (default pagination):
+
+<CodeGroup>
+```bash cURL
+curl http://10.0.2.2/huellitas/api/animales/listar.php
+```
+
+```kotlin Kotlin (ApiService)
+val response = RetrofitClient.apiService.listarAnimales()
+
+if (response.isSuccessful && response.body()?.status == true) {
+    val animales = response.body()?.data ?: emptyList()
+    println("Found ${animales.size} animals")
+}
+```
+</CodeGroup>
+
+### Paginated Request
+
+Get 20 animals from page 2:
+
+<CodeGroup>
+```bash cURL
+curl "http://10.0.2.2/huellitas/api/animales/listar.php?limite=20&pagina=2"
+```
+
+```kotlin Kotlin
+val response = RetrofitClient.apiService.listarAnimales(
+    limite = 20,
+    pagina = 2
+)
+```
+</CodeGroup>
+
+### Filter by Type
+
+Get only dogs (type 1):
+
+<CodeGroup>
+```bash cURL
+curl "http://10.0.2.2/huellitas/api/animales/listar.php?tipo=1&limite=10"
+```
+
+```kotlin Kotlin
+val response = RetrofitClient.apiService.listarAnimalesPorTipo(
+    idTipo = 1,
+    limite = 10
+)
+```
+</CodeGroup>
+
+### Custom Sorting
+
+Sort by name ascending:
+
+<CodeGroup>
+```bash cURL
+curl "http://10.0.2.2/huellitas/api/animales/listar.php?orden=nombre&direccion=ASC"
+```
+
+```kotlin Kotlin
+val response = RetrofitClient.apiService.listarAnimales(
+    orden = "nombre",
+    direccion = "ASC"
+)
+```
+</CodeGroup>
+
+## Success Response
+
+```json
+{
+  "status": true,
+  "message": "Animales obtenidos correctamente",
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Max",
+      "id_tipo_animal": 1,
+      "tipo_animal": "Perro",
+      "raza": "Labrador",
+      "descripcion": "Perro amigable encontrado en el parque",
+      "ubicacion": "Parque Central",
+      "contacto": "+52 123 456 7890",
+      "id_estado": 1,
+      "estado": "Activo",
+      "fecha_registro": "2024-03-15 10:30:00",
+      "updated_at": "2024-03-15 10:30:00",
+      "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg"
+    },
+    {
+      "id": 2,
+      "nombre": null,
+      "id_tipo_animal": 2,
+      "tipo_animal": "Gato",
+      "raza": null,
+      "descripcion": null,
+      "ubicacion": "Calle 5",
+      "contacto": "contacto@example.com",
+      "id_estado": 1,
+      "estado": "Activo",
+      "fecha_registro": "2024-03-16 14:20:00",
+      "updated_at": "2024-03-16 14:20:00",
+      "imagen_url": null
+    }
+  ]
+}
+```
+
+## Error Responses
+
+### Wrong HTTP Method
+
+```json
+{
+  "status": false,
+  "message": "Método no permitido. Use GET.",
+  "data": null
+}
+```
+
+HTTP Status: `405 Method Not Allowed`
+
+### Database Error
+
+```json
+{
+  "status": false,
+  "message": "Error al obtener los animales",
+  "data": null
+}
+```
+
+HTTP Status: `500 Internal Server Error`
+
+## Implementation Details
+
+### Query Logic
+
+The endpoint implements two query modes (see `listar.php:27-35`):
+
+1. **Type filter mode**: If `tipo` parameter is provided, returns animals of that type, ignoring `orden` and `direccion`
+2. **General mode**: Without `tipo`, returns all animals sorted by specified column and direction
+
+### SQL Injection Prevention
+
+Sort columns and directions are validated against whitelists:
+
+```php
+$columnasPermitidas = ['fecha_registro', 'nombre', 'id'];
+$direccionesPermitidas = ['ASC', 'DESC'];
+```
+
+See `Animal.php:40-45` for implementation.
+
+### Pagination Calculation
+
+```php
+$desplazamiento = ($pagina - 1) * $limite;
+```
+
+Example: Page 3 with limit 10 → offset 20
+
+### Database Joins
+
+The query joins three tables:
+- `animales` (main table)
+- `tipos_animal` (animal types)
+- `estados_animal` (animal states)
+- `imagenes_animal` (images, LEFT JOIN for principal image)
+
+See `Animal.php:47-66` for the full SQL query.
+
+## Related Resources
+
+- [Animal Model](/api/models/animal) - Complete animal data structure
+- [Create Animal](/api/endpoints/create-animal) - Add new animals
+- [API Response Format](/api/models/response) - Standard response structure

@@ -1,0 +1,391 @@
+---
+title: Animal Model
+description: Complete data structure for animal records in both PHP backend and Kotlin client
+---
+
+## Overview
+
+The Animal model represents a rescued or found animal in the Huellitas system. It is implemented in:
+
+- **PHP**: `models/Animal.php` (backend model with database operations)
+- **Kotlin**: `dto/AnimalDto.kt` (data transfer object for API responses)
+
+## Database Schema
+
+The `animales` table structure:
+
+```sql
+CREATE TABLE animales (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(255) NULL,
+    id_tipo_animal INT NOT NULL,
+    raza VARCHAR(255) NULL,
+    descripcion TEXT NULL,
+    ubicacion VARCHAR(255) NOT NULL,
+    contacto VARCHAR(255) NOT NULL,
+    id_estado INT NOT NULL DEFAULT 1,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### Related Tables
+
+**tipos_animal** (Animal Types)
+```sql
+CREATE TABLE tipos_animal (
+    id INT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL
+);
+-- Values: 1=Perro, 2=Gato, 3=Otro
+```
+
+**estados_animal** (Animal States)
+```sql
+CREATE TABLE estados_animal (
+    id INT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL
+);
+-- Example: 1=Activo, 2=Adoptado, 3=Inactivo
+```
+
+**imagenes_animal** (Animal Images)
+```sql
+CREATE TABLE imagenes_animal (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_animal INT NOT NULL,
+    imagen_url VARCHAR(500) NOT NULL,
+    es_principal TINYINT(1) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_animal) REFERENCES animales(id) ON DELETE CASCADE
+);
+```
+
+## PHP Model (Backend)
+
+### Properties
+
+Defined in `Animal.php:17-25`:
+
+```php
+public ?int $id = null;
+public ?string $nombre = null;
+public int $id_tipo_animal;
+public ?string $raza = null;
+public ?string $descripcion = null;
+public string $ubicacion;
+public string $contacto;
+public int $id_estado = 1;
+public ?string $imagen_url = null;
+```
+
+### Methods
+
+<ParamField body="obtenerTodos" type="method">
+  Get all animals with pagination and sorting.
+  
+  **Parameters**:
+  - `$orden` (string): Sort column (default: `fecha_registro`)
+  - `$direccion` (string): Sort direction (default: `DESC`)
+  - `$limite` (int): Page size (default: 10)
+  - `$desplazamiento` (int): Offset (default: 0)
+  
+  **Returns**: `array` of animal objects with joined data
+  
+  See `Animal.php:38`
+</ParamField>
+
+<ParamField body="obtenerPorId" type="method">
+  Get a single animal by ID with complete data including all images.
+  
+  **Parameters**:
+  - `$id` (int): Animal ID
+  
+  **Returns**: `array|false` - Animal data or false if not found
+  
+  See `Animal.php:82`
+</ParamField>
+
+<ParamField body="obtenerPorTipo" type="method">
+  Get animals filtered by type with pagination.
+  
+  **Parameters**:
+  - `$idTipo` (int): Animal type ID (1, 2, or 3)
+  - `$limite` (int): Page size
+  - `$desplazamiento` (int): Offset
+  
+  **Returns**: `array` of animal objects
+  
+  See `Animal.php:121`
+</ParamField>
+
+<ParamField body="crear" type="method">
+  Create a new animal record with transaction safety.
+  
+  **Returns**: `int` - ID of the created animal
+  
+  **Throws**: `PDOException` if database error occurs
+  
+  See `Animal.php:157`
+</ParamField>
+
+<ParamField body="actualizar" type="method">
+  Update an existing animal record.
+  
+  **Returns**: `bool` - true if successful
+  
+  See `Animal.php:197`
+</ParamField>
+
+<ParamField body="eliminar" type="method">
+  Delete an animal by ID. Images are cascaded automatically.
+  
+  **Parameters**:
+  - `$id` (int): Animal ID
+  
+  **Returns**: `bool` - true if successful
+  
+  See `Animal.php:228`
+</ParamField>
+
+<ParamField body="agregarImagen" type="method">
+  Add an image to an animal.
+  
+  **Parameters**:
+  - `$idAnimal` (int): Animal ID
+  - `$imagenUrl` (string): Image URL
+  - `$esPrincipal` (bool): Whether this is the principal image
+  
+  **Returns**: `bool` - true if successful
+  
+  See `Animal.php:245`
+</ParamField>
+
+<ParamField body="obtenerImagenes" type="method">
+  Get all images for an animal, sorted by principal status.
+  
+  **Parameters**:
+  - `$idAnimal` (int): Animal ID
+  
+  **Returns**: `array` of image objects
+  
+  See `Animal.php:263`
+</ParamField>
+
+## Kotlin DTO (Android Client)
+
+### AnimalDto Structure
+
+Defined in `AnimalDto.kt:9-22`:
+
+```kotlin
+data class AnimalDto(
+    @SerializedName("id")            val id: Int,
+    @SerializedName("nombre")        val nombre: String?,
+    @SerializedName("id_tipo_animal") val idTipoAnimal: Int,
+    @SerializedName("tipo_animal")   val tipoAnimal: String,
+    @SerializedName("raza")          val raza: String?,
+    @SerializedName("descripcion")   val descripcion: String?,
+    @SerializedName("ubicacion")     val ubicacion: String,
+    @SerializedName("contacto")      val contacto: String,
+    @SerializedName("id_estado")     val idEstado: Int,
+    @SerializedName("estado")        val estado: String,
+    @SerializedName("fecha_registro") val fechaRegistro: String,
+    @SerializedName("imagen_url")    val imagenUrl: String?
+)
+```
+
+<Note>
+  `@SerializedName` annotations map snake_case JSON keys to camelCase Kotlin properties.
+</Note>
+
+### CrearAnimalRequest Structure
+
+Defined in `CrearAnimalRequest.kt:9-17`:
+
+```kotlin
+data class CrearAnimalRequest(
+    @SerializedName("nombre")          val nombre: String?,
+    @SerializedName("id_tipo_animal")  val idTipoAnimal: Int,
+    @SerializedName("raza")            val raza: String?,
+    @SerializedName("descripcion")     val descripcion: String?,
+    @SerializedName("ubicacion")       val ubicacion: String,
+    @SerializedName("contacto")        val contacto: String,
+    @SerializedName("imagen_url")      val imagenUrl: String? = null
+)
+```
+
+## Field Definitions
+
+### Core Fields
+
+<ResponseField name="id" type="integer" required>
+  Unique identifier, auto-generated by MySQL.
+</ResponseField>
+
+<ResponseField name="nombre" type="string | null">
+  Animal's name. Optional - can be null for unidentified animals.
+</ResponseField>
+
+<ResponseField name="id_tipo_animal" type="integer" required>
+  Animal type ID:
+  - `1` - Perro (Dog)
+  - `2` - Gato (Cat)
+  - `3` - Otro (Other)
+  
+  References `tipos_animal.id`.
+</ResponseField>
+
+<ResponseField name="tipo_animal" type="string">
+  Animal type name (e.g., "Perro", "Gato"). Joined from `tipos_animal` table.
+  
+  Only present in API responses, not in create requests.
+</ResponseField>
+
+<ResponseField name="raza" type="string | null">
+  Breed or race. Optional.
+</ResponseField>
+
+<ResponseField name="descripcion" type="string | null">
+  Description of the animal's appearance, behavior, or circumstances. Optional.
+</ResponseField>
+
+<ResponseField name="ubicacion" type="string" required>
+  Location where the animal was found. Required field, cannot be empty.
+</ResponseField>
+
+<ResponseField name="contacto" type="string" required>
+  Contact information (phone, email, etc.). Required field, cannot be empty.
+</ResponseField>
+
+<ResponseField name="id_estado" type="integer" required>
+  Animal state ID. Defaults to `1` ("Activo").
+  
+  References `estados_animal.id`.
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  State name (e.g., "Activo", "Adoptado"). Joined from `estados_animal` table.
+  
+  Only present in API responses.
+</ResponseField>
+
+<ResponseField name="fecha_registro" type="string">
+  Registration timestamp in MySQL DATETIME format: `YYYY-MM-DD HH:MM:SS`.
+  
+  Auto-set by database on creation.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Last update timestamp. Auto-updated by MySQL on any record modification.
+</ResponseField>
+
+<ResponseField name="imagen_url" type="string | null">
+  URL of the principal image.
+  
+  In list endpoints, this is the image marked as `es_principal = 1`.
+  
+  In single animal queries, the full `imagenes` array is included separately.
+</ResponseField>
+
+### Images Array
+
+When fetching a single animal with `obtenerPorId()`, the response includes:
+
+```json
+{
+  "id": 15,
+  "nombre": "Max",
+  ...,
+  "imagenes": [
+    {
+      "id": 8,
+      "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg",
+      "es_principal": 1,
+      "created_at": "2024-03-16 15:45:30"
+    }
+  ]
+}
+```
+
+See `Animal.php:107-110` for implementation.
+
+## Example JSON
+
+### List Response
+
+```json
+{
+  "id": 1,
+  "nombre": "Max",
+  "id_tipo_animal": 1,
+  "tipo_animal": "Perro",
+  "raza": "Labrador",
+  "descripcion": "Perro amigable encontrado en el parque",
+  "ubicacion": "Parque Central",
+  "contacto": "+52 123 456 7890",
+  "id_estado": 1,
+  "estado": "Activo",
+  "fecha_registro": "2024-03-15 10:30:00",
+  "updated_at": "2024-03-15 10:30:00",
+  "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg"
+}
+```
+
+### Single Animal Response
+
+```json
+{
+  "id": 1,
+  "nombre": "Max",
+  "id_tipo_animal": 1,
+  "tipo_animal": "Perro",
+  "raza": "Labrador",
+  "descripcion": "Perro amigable encontrado en el parque",
+  "ubicacion": "Parque Central",
+  "contacto": "+52 123 456 7890",
+  "id_estado": 1,
+  "estado": "Activo",
+  "fecha_registro": "2024-03-15 10:30:00",
+  "updated_at": "2024-03-15 10:30:00",
+  "imagenes": [
+    {
+      "id": 8,
+      "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg",
+      "es_principal": 1,
+      "created_at": "2024-03-16 15:45:30"
+    },
+    {
+      "id": 9,
+      "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a2c4d5e6f.jpg",
+      "es_principal": 0,
+      "created_at": "2024-03-16 16:10:00"
+    }
+  ]
+}
+```
+
+## SQL Injection Prevention
+
+All database queries use **PDO prepared statements** with bound parameters:
+
+```php
+$stmt = $this->db->prepare($query);
+$stmt->bindValue(':id', $id, PDO::PARAM_INT);
+$stmt->execute();
+```
+
+Sort columns and directions are validated against whitelists:
+
+```php
+$columnasPermitidas = ['fecha_registro', 'nombre', 'id'];
+$orden = in_array($orden, $columnasPermitidas, true) ? $orden : 'fecha_registro';
+```
+
+See `Animal.php:40-45`.
+
+## Related Resources
+
+- [List Animals Endpoint](/api/endpoints/list-animals)
+- [Create Animal Endpoint](/api/endpoints/create-animal)
+- [API Response Format](/api/models/response)

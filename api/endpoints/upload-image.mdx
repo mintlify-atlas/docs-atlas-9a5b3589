@@ -1,0 +1,349 @@
+---
+title: Upload Image
+api: POST /api/animales/subir_imagen.php
+description: Upload an animal photo to the server (multipart/form-data)
+---
+
+## Endpoint
+
+```
+POST /api/animales/subir_imagen.php
+```
+
+## Headers
+
+```http
+Content-Type: multipart/form-data
+```
+
+## Request Body
+
+<ParamField body="imagen" type="file" required>
+  The image file to upload.
+  
+  **Allowed formats**: JPG, PNG, WEBP
+  
+  **Maximum size**: 5 MB
+  
+  **Validation**: File type is verified using `mime_content_type()` and `getimagesize()` for security.
+</ParamField>
+
+<ParamField body="id_animal" type="integer">
+  Optional. If provided, the uploaded image will be automatically linked to this animal ID in the `imagenes_animal` table.
+  
+  If omitted, only the image URL is returned and must be manually associated later.
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="boolean" required>
+  `true` if upload succeeded, `false` otherwise
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable result message
+</ResponseField>
+
+<ResponseField name="data" type="object" required>
+  Contains the uploaded image URL:
+  
+  <Expandable title="data object">
+    <ResponseField name="imagen_url" type="string">
+      Full public URL to the uploaded image, e.g.:
+      
+      `http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e.jpg`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Upload Image Only
+
+Upload an image without linking to an animal:
+
+<CodeGroup>
+```bash cURL
+curl -X POST http://10.0.2.2/huellitas/api/animales/subir_imagen.php \
+  -F "imagen=@/path/to/photo.jpg"
+```
+
+```kotlin Kotlin (ApiService)
+val file = File("/storage/emulated/0/DCIM/photo.jpg")
+val requestBody = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+val imagePart = MultipartBody.Part.createFormData(
+    "imagen",
+    file.name,
+    requestBody
+)
+
+val response = RetrofitClient.apiService.subirImagen(imagePart)
+
+if (response.isSuccessful && response.body()?.status == true) {
+    val imageUrl = response.body()?.data?.get("imagen_url")
+    println("Uploaded image URL: $imageUrl")
+}
+```
+</CodeGroup>
+
+### Upload and Link to Animal
+
+Upload an image and automatically link it to an existing animal:
+
+<CodeGroup>
+```bash cURL
+curl -X POST http://10.0.2.2/huellitas/api/animales/subir_imagen.php \
+  -F "imagen=@/path/to/photo.jpg" \
+  -F "id_animal=15"
+```
+
+```kotlin Kotlin
+val file = File("/storage/emulated/0/DCIM/photo.jpg")
+val imagePart = MultipartBody.Part.createFormData(
+    "imagen",
+    file.name,
+    file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+)
+
+val idAnimalPart = RequestBody.create(
+    "text/plain".toMediaTypeOrNull(),
+    "15"
+)
+
+val response = RetrofitClient.apiService.subirImagen(
+    imagen = imagePart,
+    idAnimal = idAnimalPart
+)
+```
+</CodeGroup>
+
+## Success Response
+
+```json
+{
+  "status": true,
+  "message": "Imagen subida correctamente",
+  "data": {
+    "imagen_url": "http://10.0.2.2/huellitas/uploads/animal_65f4a1b2c3d4e1a2b3c.jpg"
+  }
+}
+```
+
+HTTP Status: `201 Created`
+
+## Error Responses
+
+### No File Uploaded
+
+```json
+{
+  "status": false,
+  "message": "No se envió ninguna imagen.",
+  "data": null
+}
+```
+
+HTTP Status: `400 Bad Request`
+
+### Invalid File Type
+
+```json
+{
+  "status": false,
+  "message": "Formato no permitido. Use JPG, PNG o WEBP.",
+  "data": null
+}
+```
+
+HTTP Status: `400 Bad Request`
+
+### File Too Large
+
+```json
+{
+  "status": false,
+  "message": "La imagen no puede pesar más de 5MB.",
+  "data": null
+}
+```
+
+HTTP Status: `400 Bad Request`
+
+### Not a Valid Image
+
+```json
+{
+  "status": false,
+  "message": "El archivo no es una imagen válida.",
+  "data": null
+}
+```
+
+HTTP Status: `400 Bad Request`
+
+### Server Write Error
+
+```json
+{
+  "status": false,
+  "message": "Error al guardar la imagen en el servidor.",
+  "data": null
+}
+```
+
+HTTP Status: `500 Internal Server Error`
+
+### Wrong HTTP Method
+
+```json
+{
+  "status": false,
+  "message": "Método no permitido. Use POST.",
+  "data": null
+}
+```
+
+HTTP Status: `405 Method Not Allowed`
+
+## Security Validations
+
+The endpoint implements multiple security checks (see `subir_imagen.php:45-65`):
+
+### 1. MIME Type Verification
+
+```php
+$tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+$tipoReal = mime_content_type($archivo['tmp_name']);
+
+if (!in_array($tipoReal, $tiposPermitidos, true)) {
+    Response::error('Formato no permitido. Use JPG, PNG o WEBP.');
+}
+```
+
+The server checks the **actual file content**, not just the extension.
+
+### 2. File Size Limit
+
+```php
+$maxBytes = 5 * 1024 * 1024;  // 5MB
+if ($archivo['size'] > $maxBytes) {
+    Response::error('La imagen no puede pesar más de 5MB.');
+}
+```
+
+### 3. Image Validation
+
+```php
+$infoImagen = getimagesize($archivo['tmp_name']);
+if ($infoImagen === false) {
+    Response::error('El archivo no es una imagen válida.');
+}
+```
+
+Prevents uploading non-image files disguised with image extensions.
+
+## File Storage
+
+### Unique Filename Generation
+
+Files are saved with a unique name to prevent collisions:
+
+```php
+$nombreArchivo = uniqid('animal_', true) . '.' . $extension;
+```
+
+Example: `animal_65f4a1b2c3d4e1a2b3c.jpg`
+
+### Upload Directory
+
+Images are stored in:
+
+```
+huellitas/uploads/
+```
+
+The directory is created automatically if it doesn't exist (see `subir_imagen.php:76-80`):
+
+```php
+if (!is_dir($carpetaDestino)) {
+    mkdir($carpetaDestino, 0755, true);
+}
+```
+
+<Warning>
+  Ensure the `uploads/` folder has write permissions (755) on production servers.
+</Warning>
+
+### Public URL Construction
+
+The endpoint dynamically builds the full URL based on the request:
+
+```php
+$protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'];
+$baseDir = dirname(dirname($scriptDir));
+$urlImagen = $protocolo . '://' . $host . $baseDir . '/uploads/' . $nombreArchivo;
+```
+
+See `subir_imagen.php:88-95`.
+
+This ensures the URL works correctly in both local (XAMPP) and production (HostGator) environments.
+
+## Database Linking
+
+If `id_animal` is provided, the image is inserted into the `imagenes_animal` table (see `subir_imagen.php:98-108`):
+
+```php
+if ($idAnimal !== null && $idAnimal > 0) {
+    $modeloAnimal = new Animal();
+    $modeloAnimal->agregarImagen($idAnimal, $urlImagen, true);
+}
+```
+
+The image is marked as **principal** (`es_principal = 1`).
+
+<Note>
+  If the database insert fails, the image file is still saved. The endpoint does not return an error in this case.
+</Note>
+
+## Upload Error Codes
+
+PHP upload errors are mapped to user-friendly messages (see `subir_imagen.php:30-40`):
+
+| PHP Constant | Message |
+|--------------|----------|
+| `UPLOAD_ERR_INI_SIZE` | La imagen excede el tamaño máximo del servidor. |
+| `UPLOAD_ERR_FORM_SIZE` | La imagen excede el tamaño máximo permitido. |
+| `UPLOAD_ERR_PARTIAL` | La imagen se subió parcialmente. |
+| `UPLOAD_ERR_NO_FILE` | No se envió ninguna imagen. |
+| `UPLOAD_ERR_NO_TMP_DIR` | Error de configuración del servidor. |
+| `UPLOAD_ERR_CANT_WRITE` | Error al escribir la imagen en disco. |
+
+## Configuration Notes
+
+### PHP Settings
+
+Ensure your `php.ini` has adequate limits:
+
+```ini
+upload_max_filesize = 10M
+post_max_size = 10M
+memory_limit = 128M
+```
+
+The API enforces a 5MB limit regardless of PHP settings.
+
+### XAMPP Setup
+
+On XAMPP, the default limits are usually sufficient. If you encounter issues:
+
+1. Open `C:\xampp\php\php.ini`
+2. Search for `upload_max_filesize` and `post_max_size`
+3. Increase values if needed
+4. Restart Apache
+
+## Related Resources
+
+- [Create Animal](/api/endpoints/create-animal) - Use the uploaded image URL when creating animals
+- [Animal Model](/api/models/animal) - See how images are stored and linked
+- [Configuration](/api/configuration) - Setup upload directory permissions

@@ -1,0 +1,88 @@
+---
+title: Introduction
+description: Welcome to Huellitas - A mobile app for tracking and rescuing street animals
+---
+
+# Welcome to Huellitas
+
+Huellitas is an Android mobile application designed to help communities register and track street animals, making it easier to facilitate their rescue and adoption.
+
+## What is Huellitas?
+
+Huellitas allows users to report sightings of street animals, including photos, location data, and contact information. This creates a network of community members working together to help animals in need find safety and homes.
+
+The app provides a centralized platform where:
+- Community members can document street animals they encounter
+- Rescuers can coordinate efforts to help animals in need
+- Potential adopters can find animals looking for homes
+- Everyone can track the status and location of animals in their area
+
+## Who is Huellitas for?
+
+Huellitas is designed for:
+
+- **Animal Rescuers** - Organizations and individuals dedicated to rescuing street animals
+- **Community Members** - People who want to help street animals in their neighborhoods
+- **Adoption Coordinators** - Those working to find permanent homes for rescued animals
+- **Local Authorities** - Municipal programs tracking and managing street animal populations
+
+## Key Capabilities
+
+<CardGroup cols={2}>
+  <Card title="Animal Registration" icon="paw">
+    Register street animals with photos, type, breed, description, location, and contact details
+  </Card>
+  
+  <Card title="Photo Capture" icon="camera">
+    Built-in camera functionality using CameraX for high-quality animal photos
+  </Card>
+  
+  <Card title="Animal Listings" icon="list">
+    View all registered animals with filtering and sorting options (Recent, By date, Oldest)
+  </Card>
+  
+  <Card title="Image Zoom" icon="magnifying-glass">
+    Expand animal photos to view details clearly
+  </Card>
+</CardGroup>
+
+## Architecture Overview
+
+Huellitas is built with modern Android development practices:
+
+- **Kotlin** as the primary language
+- **Jetpack Compose** for declarative UI with Material 3 design
+- **MVVM architecture** for clean separation of concerns
+- **CameraX** for reliable photo capture
+- **Retrofit 2** for REST API communication
+- **PHP backend** for data persistence
+
+<Note>
+The app follows a single-activity architecture with Navigation Compose, providing smooth transitions and a modern Android experience.
+</Note>
+
+## Project Structure
+
+The codebase follows MVVM pattern:
+
+```
+com.example.huellitas/
+├── model/              # Data models (Animal, TipoAnimal, OpcionFiltro)
+├── navigation/         # Navigation routes and NavHost
+├── network/            # Retrofit client, ApiService, and DTOs
+├── repository/         # Data repository (AnimalRepository)
+├── ui/
+│   ├── components/     # Reusable UI components
+│   ├── screens/        # App screens (home, camera, registration, etc.)
+│   └── theme/          # Material 3 theme configuration
+├── viewmodel/          # ViewModels for state management
+└── MainActivity.kt     # Single activity entry point
+```
+
+## Getting Started
+
+Ready to get started with Huellitas? Check out our [Quickstart Guide](/quickstart) to get the app running in minutes, or dive into the detailed [Installation Instructions](/installation) for a complete setup walkthrough.
+
+<Card title="Quickstart" icon="rocket" href="/quickstart">
+  Get Huellitas running on your device in 5 minutes
+</Card>

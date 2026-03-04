@@ -1,0 +1,458 @@
+---
+title: Theming System
+description: Material 3 theme configuration with custom color palette, typography, and shapes
+---
+
+## Overview
+
+Huellitas uses a custom Material 3 theme with a warm purple palette inspired by animal rescue and compassion. The theme maintains consistent branding across all devices by using a fixed color scheme rather than dynamic colors.
+
+## Theme Setup
+
+The main theme composable is defined in `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Theme.kt`:
+
+```kotlin
+@Composable
+fun HuellitasTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = HuellitasTypography,
+        shapes = HuellitasShapes,
+        content = content
+    )
+}
+```
+
+### Theme Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `darkTheme` | `Boolean` | System setting | Whether to apply dark color scheme |
+| `content` | `@Composable () -> Unit` | Required | Themed content |
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Theme.kt:85-96`
+
+## Color System
+
+### Color Philosophy
+
+The Huellitas color palette uses purple tones to convey:
+- **Care and compassion** (primary purple)
+- **Warmth and support** (soft violet)
+- **Tenderness and affection** (rose tones)
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Color.kt:5-12`
+
+### Light Theme Colors
+
+#### Primary Colors
+```kotlin
+val PrimaryLight = Color(0xFF8B4FC6)              // Main purple
+val OnPrimaryLight = Color(0xFFFFFFFF)            // White text on primary
+val PrimaryContainerLight = Color(0xFFF0E0FF)    // Light purple container
+val OnPrimaryContainerLight = Color(0xFF2D004F)  // Dark purple text
+```
+
+#### Secondary Colors
+```kotlin
+val SecondaryLight = Color(0xFF6B5778)            // Soft violet
+val OnSecondaryLight = Color(0xFFFFFFFF)          // White text
+val SecondaryContainerLight = Color(0xFFF0DDFF)  // Light violet container
+val OnSecondaryContainerLight = Color(0xFF251432) // Dark text
+```
+
+#### Tertiary Colors
+```kotlin
+val TertiaryLight = Color(0xFF7B5265)            // Rose
+val OnTertiaryLight = Color(0xFFFFFFFF)          // White text
+val TertiaryContainerLight = Color(0xFFFFD8E8)  // Light rose container
+val OnTertiaryContainerLight = Color(0xFF301121) // Dark text
+```
+
+#### Surface & Background
+```kotlin
+val BackgroundLight = Color(0xFFFFFBFF)          // Off-white
+val OnBackgroundLight = Color(0xFF1D1A20)        // Near-black text
+val SurfaceLight = Color(0xFFFFFBFF)             // Off-white
+val OnSurfaceLight = Color(0xFF1D1A20)           // Near-black text
+val SurfaceVariantLight = Color(0xFFE8DEF8)      // Light purple surface
+val OnSurfaceVariantLight = Color(0xFF49454F)    // Medium gray text
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Color.kt:16-49`
+
+### Dark Theme Colors
+
+#### Primary Colors
+```kotlin
+val PrimaryDark = Color(0xFFD0BCFF)              // Light purple
+val OnPrimaryDark = Color(0xFF3E1D6B)            // Dark purple
+val PrimaryContainerDark = Color(0xFF6B34A8)     // Medium purple container
+val OnPrimaryContainerDark = Color(0xFFF0E0FF)   // Very light purple text
+```
+
+#### Secondary Colors
+```kotlin
+val SecondaryDark = Color(0xFFCCC2DC)            // Light violet
+val OnSecondaryDark = Color(0xFF3B2948)          // Dark violet
+val SecondaryContainerDark = Color(0xFF524060)   // Medium violet container
+val OnSecondaryContainerDark = Color(0xFFF0DDFF) // Light violet text
+```
+
+#### Surface & Background
+```kotlin
+val BackgroundDark = Color(0xFF1D1A20)           // Dark background
+val OnBackgroundDark = Color(0xFFE7E0EC)         // Light text
+val SurfaceDark = Color(0xFF1D1A20)              // Dark surface
+val OnSurfaceDark = Color(0xFFE7E0EC)            // Light text
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Color.kt:52-85`
+
+### Accent Colors
+
+Special purpose colors for specific UI elements:
+
+```kotlin
+val DogChip = Color(0xFF5B9BD5)          // Blue for dog badges
+val CatChip = Color(0xFFC47BC2)          // Purple for cat badges
+
+val GradientStart = Color(0xFF9B59D0)    // Purple gradient start
+val GradientEnd = Color(0xFFB06FE8)      // Purple gradient end
+val GradientDarkStart = Color(0xFF5B2D8E) // Dark theme gradient
+val GradientDarkEnd = Color(0xFF7B3FB8)  // Dark theme gradient
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Color.kt:88-94`
+
+### Welcome Screen Colors
+
+```kotlin
+val PurplePrimary = Color(0xFF8B4FC6)    // Main brand purple
+val PurpleLight = Color(0xFFAB6FE8)      // Lighter purple
+val PurpleDark = Color(0xFF6B34A8)       // Darker purple
+val PurpleText = Color(0xFF5A2D82)       // Text purple
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Color.kt:97-100`
+
+## Typography
+
+The typography system uses the system default font with carefully tuned weights, sizes, and spacing.
+
+### Display Styles
+
+```kotlin
+val HuellitasTypography = Typography(
+    displayLarge = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 57.sp,
+        lineHeight = 64.sp,
+        letterSpacing = (-0.25).sp
+    ),
+    displayMedium = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 45.sp,
+        lineHeight = 52.sp
+    ),
+    displaySmall = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 44.sp
+    )
+)
+```
+
+### Headlines
+
+```kotlin
+headlineLarge = TextStyle(
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 32.sp,
+    lineHeight = 40.sp
+),
+headlineMedium = TextStyle(
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 28.sp,
+    lineHeight = 36.sp
+),
+headlineSmall = TextStyle(
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 24.sp,
+    lineHeight = 32.sp
+)
+```
+
+### Titles
+
+```kotlin
+titleLarge = TextStyle(
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 22.sp,
+    lineHeight = 28.sp
+),
+titleMedium = TextStyle(
+    fontWeight = FontWeight.Medium,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.15.sp
+),
+titleSmall = TextStyle(
+    fontWeight = FontWeight.Medium,
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    letterSpacing = 0.1.sp
+)
+```
+
+### Body Text
+
+```kotlin
+bodyLarge = TextStyle(
+    fontWeight = FontWeight.Normal,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.5.sp
+),
+bodyMedium = TextStyle(
+    fontWeight = FontWeight.Normal,
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    letterSpacing = 0.25.sp
+),
+bodySmall = TextStyle(
+    fontWeight = FontWeight.Normal,
+    fontSize = 12.sp,
+    lineHeight = 16.sp,
+    letterSpacing = 0.4.sp
+)
+```
+
+### Labels
+
+```kotlin
+labelLarge = TextStyle(
+    fontWeight = FontWeight.Medium,
+    fontSize = 14.sp,
+    lineHeight = 20.sp,
+    letterSpacing = 0.1.sp
+),
+labelMedium = TextStyle(
+    fontWeight = FontWeight.Medium,
+    fontSize = 12.sp,
+    lineHeight = 16.sp,
+    letterSpacing = 0.5.sp
+),
+labelSmall = TextStyle(
+    fontWeight = FontWeight.Medium,
+    fontSize = 11.sp,
+    lineHeight = 16.sp,
+    letterSpacing = 0.5.sp
+)
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Type.kt:15-121`
+
+## Shapes
+
+The shape system uses rounded corners for a warm, friendly aesthetic:
+
+```kotlin
+val HuellitasShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp)
+)
+```
+
+### Shape Usage Guidelines
+
+| Shape | Corner Radius | Common Uses |
+|-------|---------------|-------------|
+| `extraSmall` | 4dp | Small chips, indicators |
+| `small` | 8dp | Buttons, small cards |
+| `medium` | 16dp | Cards, dialogs |
+| `large` | 24dp | Bottom sheets, large cards |
+| `extraLarge` | 32dp | FABs, special containers |
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Shape.kt:11-17`
+
+## Usage Examples
+
+### Basic Theme Application
+
+```kotlin
+import androidx.compose.material3.MaterialTheme
+import com.example.huellitas.ui.theme.HuellitasTheme
+
+@Composable
+fun App() {
+    HuellitasTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            // Your app content
+            MainNavigation()
+        }
+    }
+}
+```
+
+### Accessing Theme Colors
+
+```kotlin
+import androidx.compose.material3.MaterialTheme
+
+@Composable
+fun CustomCard() {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    ) {
+        Text(
+            text = "Custom Card",
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+```
+
+### Using Typography
+
+```kotlin
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+
+@Composable
+fun TypedContent() {
+    Column {
+        Text(
+            text = "Main Heading",
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "Body content",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+```
+
+### Using Shapes
+
+```kotlin
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+
+@Composable
+fun RoundedContainer() {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        // Content
+    }
+}
+```
+
+### Using Accent Colors
+
+```kotlin
+import com.example.huellitas.ui.theme.DogChip
+import com.example.huellitas.ui.theme.CatChip
+import com.example.huellitas.model.TipoAnimal
+
+@Composable
+fun AnimalTypeBadge(tipo: TipoAnimal) {
+    val badgeColor = when (tipo) {
+        TipoAnimal.PERRO -> DogChip
+        TipoAnimal.GATO -> CatChip
+        TipoAnimal.OTRO -> GradientStart
+    }
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = badgeColor.copy(alpha = 0.9f)
+    ) {
+        Text(
+            text = tipo.etiqueta,
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White
+        )
+    }
+}
+```
+
+## Color Scheme Structure
+
+### Light Scheme
+```kotlin
+private val LightColorScheme = lightColorScheme(
+    primary = PrimaryLight,
+    onPrimary = OnPrimaryLight,
+    primaryContainer = PrimaryContainerLight,
+    onPrimaryContainer = OnPrimaryContainerLight,
+    secondary = SecondaryLight,
+    onSecondary = OnSecondaryLight,
+    // ... all color roles
+)
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Theme.kt:12-40`
+
+### Dark Scheme
+```kotlin
+private val DarkColorScheme = darkColorScheme(
+    primary = PrimaryDark,
+    onPrimary = OnPrimaryDark,
+    primaryContainer = PrimaryContainerDark,
+    onPrimaryContainer = OnPrimaryContainerDark,
+    secondary = SecondaryDark,
+    onSecondary = OnSecondaryDark,
+    // ... all color roles
+)
+```
+
+Source: `/home/daytona/workspace/source/app/src/main/java/com/example/huellitas/ui/theme/Theme.kt:45-73`
+
+## Design Tokens
+
+### Spacing (Recommended)
+```kotlin
+// Consistent spacing scale
+4.dp   // Extra small
+8.dp   // Small
+12.dp  // Medium-small
+16.dp  // Medium (most common)
+24.dp  // Large
+32.dp  // Extra large
+```
+
+### Elevation (Common Values)
+```kotlin
+0.dp   // No elevation
+1.dp   // Subtle
+2.dp   // Small
+4.dp   // Medium (cards)
+8.dp   // Large (dialogs)
+16.dp  // Extra large
+```
+
+## Related Components
+
+- [AnimalCard](/components/animal-card) - Uses theme colors and shapes
+- [FilterChips](/components/filter-chips) - Custom chip colors
+- [Image Zoom](/components/image-zoom) - Theme-aware close button
